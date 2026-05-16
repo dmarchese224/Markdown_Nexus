@@ -68,13 +68,20 @@
                 </div>
                 <div class="space-y-2">
                     <button onclick="connectFolder()" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-md shadow-blue-100">
-                        <i data-lucide="folder-plus" class="w-4 h-4"></i>
-                        Add Folder
-                    </button>
-                    <button onclick="clearLibrary()" class="w-full flex items-center justify-center gap-2 px-4 py-2 text-gray-400 hover:text-red-500 text-xs font-semibold transition-colors">
-                        <i data-lucide="trash-2" class="w-3 h-3"></i>
-                        Clear Library
-                    </button>
+    <i data-lucide="folder-plus" class="w-4 h-4"></i>
+    Add Folder
+</button>
+
+<!-- NEW: New File button in sidebar -->
+<button onclick="createNewFile()" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-200 transition-all">
+    <i data-lucide="file-plus" class="w-4 h-4"></i>
+    New File
+</button>
+
+<button onclick="clearLibrary()" class="w-full flex items-center justify-center gap-2 px-4 py-2 text-gray-400 hover:text-red-500 text-xs font-semibold transition-colors">
+    <i data-lucide="trash-2" class="w-3 h-3"></i>
+    Clear Library
+</button>
                 </div>
             </div>
 
@@ -130,7 +137,12 @@
             <div class="relative w-full lg:max-w-[95%] bg-white shadow-2xl h-full flex flex-col transition-transform duration-300">
                 <header class="px-4 md:px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
                     <div class="min-w-0 flex-1 mr-4">
-                        <h2 id="edit-filename" class="text-lg font-bold truncate">Filename.md</h2>
+                        <input
+    id="edit-filename-input"
+    type="text"
+    class="text-lg font-bold truncate bg-transparent border-none focus:outline-none w-full"
+    value="Filename.md"
+/>
                         <p id="edit-meta" class="text-[10px] text-gray-400 font-bold uppercase tracking-widest"></p>
                     </div>
                     
@@ -180,10 +192,13 @@
 
     <script>
         let files = [];
-        let selectedFile = null;
-        let searchQuery = "";
-        let selectedSource = null;
-        let currentMode = 'split'; // 'edit', 'split', 'preview'
+let selectedFile = null;
+let searchQuery = "";
+let selectedSource = null;
+let currentMode = 'split'; // 'edit', 'split', 'preview'
+
+// NEW: store root directory handles by source name (folder name)
+let sourceRoots = {};
 
         function init() {
             lucide.createIcons();
@@ -240,32 +255,37 @@
         }
 
         function clearLibrary() {
-            if(confirm("Are you sure you want to clear all connected folders? (This won't delete your actual files)")) {
-                files = [];
-                selectedSource = null;
-                renderFolderTree();
-                renderFiles();
-            }
-        }
+    if(confirm("Are you sure you want to clear all connected folders? (This won't delete your actual files)")) {
+        files = [];
+        selectedSource = null;
+        sourceRoots = {}; // NEW
+        renderFolderTree();
+        renderFiles();
+    }
+}
 
-        async function connectFolder() {
-            if (!('showDirectoryPicker' in window)) {
-                alert("The File System Access API is not supported in this browser. Please use Chrome or Edge on PC.");
-                return;
-            }
+      async function connectFolder() {
+    if (!('showDirectoryPicker' in window)) {
+        alert("The File System Access API is not supported in this browser. Please use Chrome or Edge on PC.");
+        return;
+    }
 
-            try {
-                const directoryHandle = await window.showDirectoryPicker();
-                updateSyncStatus('Adding Folder...', 'bg-amber-500');
-                await scanDirectory(directoryHandle, directoryHandle.name);
-                renderFolderTree();
-                renderFiles();
-                updateSyncStatus('Sync Active', 'bg-green-500');
-            } catch (err) {
-                console.error(err);
-                updateSyncStatus('Ready', 'bg-gray-300');
-            }
-        }
+    try {
+        const directoryHandle = await window.showDirectoryPicker();
+
+        // NEW: remember the root handle keyed by its name (matches file.source)
+        sourceRoots[directoryHandle.name] = directoryHandle;
+
+        updateSyncStatus('Adding Folder...', 'bg-amber-500');
+        await scanDirectory(directoryHandle, directoryHandle.name);
+        renderFolderTree();
+        renderFiles();
+        updateSyncStatus('Sync Active', 'bg-green-500');
+    } catch (err) {
+        console.error(err);
+        updateSyncStatus('Ready', 'bg-gray-300');
+    }
+}
 
         async function scanDirectory(handle, rootName, currentPath = "") {
             for await (const entry of handle.values()) {
@@ -335,19 +355,24 @@
         function filterBySource(source) { selectedSource = source; renderFolderTree(); renderFiles(); }
         function handleSearch() { searchQuery = document.getElementById('search-input').value; renderFiles(); }
 
-        function openEditor(id) {
-            selectedFile = files.find(f => f.id === id);
-            document.getElementById('edit-filename').innerText = selectedFile.name;
-            document.getElementById('edit-meta').innerText = `${selectedFile.source} / ${selectedFile.path}`;
-            document.getElementById('editor-textarea').value = selectedFile.content;
-            document.getElementById('editor-modal').classList.remove('hidden');
-            
-            // Re-detect mode for best layout on open
-            setEditorMode(window.innerWidth < 768 ? 'edit' : 'split');
-            
-            updateEditorContent();
-            lucide.createIcons();
-        }
+     function openEditor(id) {
+    selectedFile = files.find(f => f.id === id);
+
+    const filenameInput = document.getElementById('edit-filename-input');
+    if (filenameInput) {
+        filenameInput.value = selectedFile.name;
+    }
+
+    document.getElementById('edit-meta').innerText = `${selectedFile.source} / ${selectedFile.path}`;
+    document.getElementById('editor-textarea').value = selectedFile.content;
+    document.getElementById('editor-modal').classList.remove('hidden');
+    
+    // Re-detect mode for best layout on open
+    setEditorMode(window.innerWidth < 768 ? 'edit' : 'split');
+    
+    updateEditorContent();
+    lucide.createIcons();
+}
 
         function updateEditorContent() {
             const text = document.getElementById('editor-textarea').value;
@@ -358,25 +383,92 @@
 
         function closeEditor() { document.getElementById('editor-modal').classList.add('hidden'); }
 
-        async function saveChanges() {
-            const newContent = document.getElementById('editor-textarea').value;
-            try {
-                if (selectedFile.handle) {
-                    const writable = await selectedFile.handle.createWritable();
-                    await writable.write(newContent);
-                    await writable.close();
+      async function saveChanges() {
+    if (!selectedFile) return;
+
+    const newContent = document.getElementById('editor-textarea').value;
+
+    // Get desired filename from input (fallback to current name)
+    const filenameInput = document.getElementById('edit-filename-input');
+    let desiredName = filenameInput ? filenameInput.value.trim() : selectedFile.name;
+
+    if (!desiredName) {
+        alert("Filename cannot be empty.");
+        return;
+    }
+
+    // Ensure .md extension
+    if (!desiredName.toLowerCase().endsWith('.md')) {
+        desiredName += '.md';
+    }
+
+    try {
+        if (desiredName !== selectedFile.name) {
+            // Need to "rename": create new file, write content, delete old file
+            const rootHandle = sourceRoots[selectedFile.source];
+            if (!rootHandle) {
+                alert("Cannot rename because the original folder handle is not available. Try reconnecting the folder.");
+                return;
+            }
+
+            // Walk into the same folder as the current file
+            let dirHandle = rootHandle;
+            if (selectedFile.path && selectedFile.path !== 'Root') {
+                const segments = selectedFile.path.split('/');
+                for (const segment of segments) {
+                    if (!segment) continue;
+                    dirHandle = await dirHandle.getDirectoryHandle(segment);
                 }
-                selectedFile.content = newContent;
-                selectedFile.updatedAt = new Date().toISOString();
-                const saveBtn = document.getElementById('save-btn');
-                const originalHTML = saveBtn.innerHTML;
-                saveBtn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Saved';
-                saveBtn.classList.replace('bg-blue-600', 'bg-emerald-600');
-                renderFiles();
-                setTimeout(() => { saveBtn.innerHTML = originalHTML; saveBtn.classList.replace('bg-emerald-600', 'bg-blue-600'); lucide.createIcons(); }, 2000);
-            } catch (err) { alert("Permission denied. Ensure the folder is still accessible."); }
-            lucide.createIcons();
+            }
+
+            // Create (or overwrite) the new name file
+            const newHandle = await dirHandle.getFileHandle(desiredName, { create: true });
+            const writableNew = await newHandle.createWritable();
+            await writableNew.write(newContent);
+            await writableNew.close();
+
+            // Try to remove the old file
+            try {
+                await dirHandle.removeEntry(selectedFile.name);
+            } catch (e) {
+                console.warn('Could not delete old file during rename', e);
+            }
+
+            // Update in-memory metadata
+            selectedFile.name = desiredName;
+            selectedFile.handle = newHandle;
+        } else {
+            // Name unchanged: just overwrite existing file
+            if (selectedFile.handle) {
+                const writable = await selectedFile.handle.createWritable();
+                await writable.write(newContent);
+                await writable.close();
+            }
         }
+
+        selectedFile.content = newContent;
+        selectedFile.updatedAt = new Date().toISOString();
+
+        const saveBtn = document.getElementById('save-btn');
+        const originalHTML = saveBtn.innerHTML;
+        saveBtn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Saved';
+        saveBtn.classList.replace('bg-blue-600', 'bg-emerald-600');
+
+        renderFiles();
+
+        setTimeout(() => {
+            saveBtn.innerHTML = originalHTML;
+            saveBtn.classList.replace('bg-emerald-600', 'bg-blue-600');
+            lucide.createIcons();
+        }, 2000);
+
+        lucide.createIcons();
+    } catch (err) {
+        console.error(err);
+        alert("Permission denied. Ensure the folder is still accessible.");
+        lucide.createIcons();
+    }
+}
 
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('-translate-x-full'); }
         function updateSyncStatus(text, colorClass) {
@@ -385,6 +477,96 @@
             dot.className = `w-2 h-2 rounded-full ${colorClass}`;
             label.innerText = text;
         }
+
+// NEW: Create a new file in the selected/current source
+async function createNewFile() {
+    // Must have at least one connected folder
+    const sourceKeys = Object.keys(sourceRoots);
+    if (!sourceKeys.length) {
+        alert("Connect a folder before creating a new file.");
+        return;
+    }
+
+    // Decide which source to use:
+    // 1) selectedSource from the sidebar
+    // 2) source of the currently open file
+    // 3) source of the first file in the library
+    // 4) first connected sourceRoot
+    let targetSource = selectedSource
+        || (selectedFile ? selectedFile.source : null)
+        || (files.length ? files[0].source : null)
+        || sourceKeys[0];
+
+    const rootHandle = sourceRoots[targetSource];
+    if (!rootHandle) {
+        alert("Original folder handle is not available. Try reconnecting the folder.");
+        return;
+    }
+
+    // Decide target path within that source:
+    // If we have a file for that source, use its path; otherwise, use Root
+    let baseFile = null;
+    if (selectedFile && selectedFile.source === targetSource) {
+        baseFile = selectedFile;
+    } else {
+        const candidates = files.filter(f => f.source === targetSource);
+        if (candidates.length) {
+            baseFile = candidates[0];
+        }
+    }
+
+    let dirHandle = rootHandle;
+    let targetPath = 'Root';
+    if (baseFile && baseFile.path && baseFile.path !== 'Root') {
+        const segments = baseFile.path.split('/');
+        for (const segment of segments) {
+            if (!segment) continue;
+            dirHandle = await dirHandle.getDirectoryHandle(segment);
+        }
+        targetPath = baseFile.path;
+    }
+
+    // Unique filename logic: New Note.md, New Note 1.md, etc.
+    const baseName = "New Note";
+    const ext = ".md";
+    let name = baseName + ext;
+    let counter = 1;
+
+    while (true) {
+        try {
+            // If this succeeds, that filename exists already
+            await dirHandle.getFileHandle(name);
+            name = `${baseName} ${counter}${ext}`;
+            counter++;
+        } catch (e) {
+            // Name not found -> we can use it
+            break;
+        }
+    }
+
+    const defaultContent = "# New Note\n\n";
+    const fileHandle = await dirHandle.getFileHandle(name, { create: true });
+    const writable = await fileHandle.createWritable();
+    await writable.write(defaultContent);
+    await writable.close();
+
+    const newFile = {
+        id: Math.random().toString(36).substr(2, 9),
+        name,
+        content: defaultContent,
+        path: targetPath,
+        source: targetSource,
+        handle: fileHandle,
+        updatedAt: new Date().toISOString()
+    };
+
+    files.push(newFile);
+    renderFiles();
+    openEditor(newFile.id);
+}
+
+window.onload = init;
+document.getElementById('editor-textarea').addEventListener('input', updateEditorContent);
 
         window.onload = init;
         document.getElementById('editor-textarea').addEventListener('input', updateEditorContent);
