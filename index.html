@@ -47,7 +47,50 @@
         #preview-pane th { background: #f9fafb; }
 
         html, body { overscroll-behavior-y: contain; }
-    </style>
+    #preview-pane th { background: #f9fafb; }
+
+    html, body { overscroll-behavior-y: contain; }
+
+    /* --- Dark mode overrides --- */
+    html.dark body {
+      background-color: #020617;
+      color: #e5e7eb;
+    }
+
+    html.dark .bg-white {
+      background-color: #020617 !important;
+    }
+    html.dark .bg-gray-50 {
+      background-color: #020617 !important;
+    }
+
+    html.dark .border-gray-100,
+    html.dark .border-gray-200 {
+      border-color: #111827 !important;
+    }
+
+    html.dark .text-gray-900,
+    html.dark .text-gray-800 {
+      color: #e5e7eb !important;
+    }
+    html.dark .text-gray-700 {
+      color: #d1d5db !important;
+    }
+    html.dark .text-gray-500,
+    html.dark .text-gray-400 {
+      color: #9ca3af !important;
+    }
+
+    html.dark input[type="text"],
+    html.dark textarea {
+      background-color: #020617;
+      color: #e5e7eb;
+    }
+
+    html.dark #preview-pane {
+      background-color: #020617;
+    }
+</style>
 </head>
 <body class="bg-gray-50 text-gray-900 overflow-hidden">
 
@@ -102,15 +145,34 @@
 
         <!-- MAIN CONTENT -->
         <main class="flex-1 flex flex-col min-w-0">
-            <header class="h-16 border-b border-gray-200 bg-white flex items-center gap-3 px-4 md:px-6 shrink-0">
-                <button onclick="toggleSidebar()" class="p-2 text-gray-500 hover:bg-gray-100 rounded-lg lg:hidden">
-                    <i data-lucide="menu" class="w-5 h-5"></i>
-                </button>
-                <div class="relative flex-1 max-w-xl">
-                    <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4"></i>
-                    <input type="text" id="search-input" oninput="handleSearch()" placeholder="Search library (names, content, tags)..." class="w-full pl-10 pr-4 py-2 bg-gray-100 border-transparent focus:bg-white focus:ring-2 focus:ring-blue-500 rounded-xl text-sm transition-all outline-none">
-                </div>
-            </header>
+           <header class="h-16 border-b border-gray-200 bg-white flex items-center gap-3 px-4 md:px-6 shrink-0">
+    <!-- Sidebar toggle (mobile) -->
+    <button onclick="toggleSidebar()" class="p-2 text-gray-500 hover:bg-gray-100 rounded-lg lg:hidden">
+        <i data-lucide="menu" class="w-5 h-5"></i>
+    </button>
+
+    <!-- Search -->
+    <div class="relative flex-1 max-w-xl">
+        <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4"></i>
+        <input
+            type="text"
+            id="search-input"
+            oninput="handleSearch()"
+            placeholder="Search library names, content, tags..."
+            class="w-full pl-10 pr-4 py-2 bg-gray-100 border-transparent focus:bg-white focus:ring-2 focus:ring-blue-500 rounded-xl text-sm transition-all outline-none"
+        >
+    </div>
+
+    <!-- Theme toggle -->
+    <button
+        id="theme-toggle"
+        onclick="toggleTheme()"
+        class="ml-2 p-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 flex items-center gap-2 text-xs font-semibold"
+    >
+        <i data-lucide="moon" class="w-4 h-4"></i>
+        <span class="hidden sm:inline">Dark</span>
+    </button>
+</header>
 
             <div class="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
                 <div class="max-w-6xl mx-auto">
@@ -200,21 +262,60 @@ let currentMode = 'split'; // 'edit', 'split', 'preview'
 // NEW: store root directory handles by source name (folder name)
 let sourceRoots = {};
 
-        function init() {
-            lucide.createIcons();
-            
-            // Register standard Service Worker file
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('sw.js').then(() => {
-                    console.log('Nexus Service Worker registered.');
-                }).catch(err => console.log('SW registration failed:', err));
-            }
+// Theme state
+let currentTheme = 'light';
 
-            // Set default mode based on screen size
-            if (window.innerWidth < 768) {
-                currentMode = 'edit';
-            }
+function applyTheme(theme) {
+    currentTheme = theme;
+    const root = document.documentElement;
+    const btn = document.getElementById('theme-toggle');
+
+    if (theme === 'dark') {
+        root.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+        if (btn) {
+            btn.innerHTML = '<i data-lucide="sun" class="w-4 h-4"></i><span class="hidden sm:inline">Light</span>';
         }
+    } else {
+        root.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+        if (btn) {
+            btn.innerHTML = '<i data-lucide="moon" class="w-4 h-4"></i><span class="hidden sm:inline">Dark</span>';
+        }
+    }
+
+    lucide.createIcons();
+}
+
+function toggleTheme() {
+    applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+}
+
+function init() {
+    lucide.createIcons();
+
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js')
+            .then(() => console.log('Nexus Service Worker registered.'))
+            .catch(err => console.log('SW registration failed:', err));
+    }
+
+    // Set default mode based on screen size
+    if (window.innerWidth < 768) {
+        currentMode = 'edit';
+    }
+
+    // Theme init: stored value -> system preference -> light
+    const storedTheme = localStorage.getItem('theme');
+    if (storedTheme === 'dark' || storedTheme === 'light') {
+        applyTheme(storedTheme);
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        applyTheme('dark');
+    } else {
+        applyTheme('light');
+    }
+}
 
         function setEditorMode(mode) {
             currentMode = mode;
