@@ -365,7 +365,40 @@ function init() {
     }
 }
 
-      async function connectFolder() {
+      async function backgroundLoadContent(rootName) {
+            // Grab all files for this source that have no content yet
+            const pending = () => files.filter(f => f.source === rootName && f.content === null);
+            const BATCH = 5; // read N files at a time to avoid overwhelming mobile I/O
+
+            updateSyncStatus('Indexing content…', 'bg-amber-500');
+
+            while (pending().length > 0) {
+                const batch = pending().slice(0, BATCH);
+                await Promise.all(batch.map(async file => {
+                    try {
+                        const fileData = await file.handle.getFile();
+                        file.content = await fileData.text();
+                        file.preview = file.content.replace(/[#*`]/g, '').substring(0, 80);
+                    } catch (e) {
+                        file.content = ''; // mark as attempted so we don't retry forever
+                    }
+                }));
+
+                // Update the count indicator to show indexing progress
+                const remaining = pending().length;
+                const total = files.filter(f => f.source === rootName).length;
+                const done = total - remaining;
+                updateSyncStatus(`Indexing ${done}/${total}…`, 'bg-amber-500');
+
+                // Yield to the browser between batches so UI stays responsive
+                await new Promise(r => setTimeout(r, 0));
+            }
+
+            updateSyncStatus('Sync Active', 'bg-green-500');
+            renderFiles(); // final re-render so search now has full content
+        }
+
+        async function connectFolder() {
     if (!('showDirectoryPicker' in window)) {
         alert("The File System Access API is not supported in this browser. Please use Chrome or Edge on PC.");
         return;
@@ -374,14 +407,21 @@ function init() {
     try {
         const directoryHandle = await window.showDirectoryPicker();
 
-        // NEW: remember the root handle keyed by its name (matches file.source)
+        // Remember the root handle keyed by its name (matches file.source)
         sourceRoots[directoryHandle.name] = directoryHandle;
 
-        updateSyncStatus('Adding Folder...', 'bg-amber-500');
+        updateSyncStatus('Scanning folder…', 'bg-amber-500');
+
+        // Phase 1: fast metadata-only scan — UI renders immediately after
         await scanDirectory(directoryHandle, directoryHandle.name);
         renderFolderTree();
         renderFiles();
-        updateSyncStatus('Sync Active', 'bg-green-500');
+        updateSyncStatus('Loading…', 'bg-amber-400');
+
+        // Phase 2: load all file content in the background (no await)
+        // UI is already responsive; search gains content progressively
+        backgroundLoadContent(directoryHandle.name);
+
     } catch (err) {
         console.error(err);
         updateSyncStatus('Ready', 'bg-gray-300');
@@ -389,24 +429,40 @@ function init() {
 }
 
         async function scanDirectory(handle, rootName, currentPath = "") {
+            // Collect all entries in parallel batches
+            const fileEntries = [];
+            const dirEntries = [];
+
             for await (const entry of handle.values()) {
                 if (entry.kind === 'file' && entry.name.endsWith('.md')) {
-                    const fileData = await entry.getFile();
-                    const content = await fileData.text();
-                    files.push({
-                        id: Math.random().toString(36).substr(2, 9),
-                        name: entry.name,
-                        content: content,
-                        path: currentPath || 'Root',
-                        source: rootName,
-                        handle: entry,
-                        updatedAt: new Date(fileData.lastModified).toISOString()
-                    });
+                    fileEntries.push(entry);
                 } else if (entry.kind === 'directory') {
-                    const newPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
-                    await scanDirectory(entry, rootName, newPath);
+                    dirEntries.push(entry);
                 }
             }
+
+            // Read metadata for all files in this directory in parallel (no content yet)
+            const metaResults = await Promise.all(fileEntries.map(async entry => {
+                const fileData = await entry.getFile();
+                return {
+                    id: Math.random().toString(36).substr(2, 9),
+                    name: entry.name,
+                    content: null,           // lazy — loaded on open
+                    preview: '',             // filled below
+                    path: currentPath || 'Root',
+                    source: rootName,
+                    handle: entry,
+                    updatedAt: new Date(fileData.lastModified).toISOString()
+                };
+            }));
+
+            files.push(...metaResults);
+
+            // Recurse into subdirectories in parallel
+            await Promise.all(dirEntries.map(entry => {
+                const newPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
+                return scanDirectory(entry, rootName, newPath);
+            }));
         }
 
         function renderFiles() {
@@ -414,8 +470,10 @@ function init() {
             const countLabel = document.getElementById('file-count');
             const q = searchQuery.toLowerCase();
             const filtered = files.filter(f => {
-                const matchesSearch = f.name.toLowerCase().includes(q) || 
-                                     f.content.toLowerCase().includes(q) || 
+                // Always search name/path/source; search content only if already loaded
+                const matchesSearch = !q ||
+                                     f.name.toLowerCase().includes(q) ||
+                                     (f.content && f.content.toLowerCase().includes(q)) ||
                                      f.path.toLowerCase().includes(q) ||
                                      f.source.toLowerCase().includes(q);
                 const matchesSource = !selectedSource || f.source === selectedSource;
@@ -433,7 +491,7 @@ function init() {
                         </div>
                         <h3 class="font-bold text-gray-900 truncate">${file.name}</h3>
                         <p class="text-[10px] text-gray-400 mb-2 truncate uppercase font-bold tracking-tighter"><i data-lucide="folder" class="inline w-3 h-3 mr-1"></i> ${file.path}</p>
-                        <p class="text-sm text-gray-500 line-clamp-2 italic overflow-hidden">"${file.content.substring(0, 80).replace(/[#*`]/g, '')}..."</p>
+                        <p class="text-sm text-gray-500 line-clamp-2 italic overflow-hidden">${file.preview ? '"' + file.preview + '…"' : '<span class="opacity-40">tap to preview</span>'}</p>
                     </div>
                 `).join('');
             }
@@ -456,21 +514,38 @@ function init() {
         function filterBySource(source) { selectedSource = source; renderFolderTree(); renderFiles(); }
         function handleSearch() { searchQuery = document.getElementById('search-input').value; renderFiles(); }
 
-     function openEditor(id) {
+     async function openEditor(id) {
     selectedFile = files.find(f => f.id === id);
 
     const filenameInput = document.getElementById('edit-filename-input');
-    if (filenameInput) {
-        filenameInput.value = selectedFile.name;
-    }
+    if (filenameInput) filenameInput.value = selectedFile.name;
 
     document.getElementById('edit-meta').innerText = `${selectedFile.source} / ${selectedFile.path}`;
-    document.getElementById('editor-textarea').value = selectedFile.content;
     document.getElementById('editor-modal').classList.remove('hidden');
-    
+
+    const textarea = document.getElementById('editor-textarea');
+
+    // If content not yet loaded, show a loading state and fetch it now
+    if (selectedFile.content === null) {
+        textarea.value = '';
+        textarea.placeholder = 'Loading…';
+        try {
+            const fileData = await selectedFile.handle.getFile();
+            const content = await fileData.text();
+            selectedFile.content = content;
+            // Cache a short preview for the card
+            selectedFile.preview = content.replace(/[#*`]/g, '').substring(0, 80);
+        } catch (e) {
+            textarea.placeholder = 'Could not load file.';
+            return;
+        }
+    }
+
+    textarea.placeholder = 'Start typing markdown…';
+    textarea.value = selectedFile.content;
+
     // Re-detect mode for best layout on open
     setEditorMode(window.innerWidth < 768 ? 'edit' : 'split');
-    
     updateEditorContent();
     lucide.createIcons();
 }
