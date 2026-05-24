@@ -1,10 +1,10 @@
 {
-  "name": "Markdown Nexus",
-  "short_name": "Nexus",
+  "name": "Atomic Noteshelf",
+  "short_name": "Noteshelf",
   "start_url": "index.html",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#2563eb",
+  "background_color": "#800000",
+  "theme_color": "#800000",
   "icons": [
     {
       "src": "icon.svg",

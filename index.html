@@ -3,141 +3,185 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markdown Nexus</title>
+    <title>Atomic Noteshelf</title>
     
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/svg+xml" href="icon.svg">
     <link rel="apple-touch-icon" href="icon.svg">
     
-    <meta name="theme-color" content="#2563eb">
+    <meta name="theme-color" content="#800000">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
+    <!-- CSS / Fonts / CDNs -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Markdown Parsing Library -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
+    <!-- Prism.js Code Syntax Highlighting CDN -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    
+    <script>
+        tailwind.config = { 
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        maroon: {
+                            DEFAULT: '#800000',
+                            light: '#b31a1a',
+                            dark: '#540000',
+                            50: '#fff5f5',
+                            100: '#ffe5e5',
+                            200: '#fca5a5',
+                            800: '#991b1b',
+                            900: '#7f1d1d'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; transition: background-color 0.3s ease, color 0.3s ease; }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Outfit', sans-serif; }
+        
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; }
         
         /* Markdown Preview Styles */
-        #preview-pane h1 { font-size: 1.875rem; font-weight: 700; margin-bottom: 1rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; }
-        #preview-pane h2 { font-size: 1.5rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.75rem; }
-        #preview-pane h3 { font-size: 1.25rem; font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.5rem; }
-        #preview-pane p { margin-bottom: 1rem; line-height: 1.6; color: #374151; }
-        #preview-pane ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
-        #preview-pane ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 1rem; }
-        #preview-pane blockquote { border-left: 4px solid #2563eb; padding-left: 1rem; color: #6b7280; font-style: italic; margin-bottom: 1rem; }
-        #preview-pane code { background: #f3f4f6; padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-family: monospace; font-size: 0.875rem; }
-        #preview-pane pre { background: #1f2937; color: white; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 1rem; }
-        #preview-pane pre code { background: transparent; color: inherit; padding: 0; }
-        #preview-pane strong { font-weight: 700; }
-        #preview-pane em { font-style: italic; }
-        #preview-pane del { text-decoration: line-through; color: #9ca3af; }
-        #preview-pane hr { margin: 2rem 0; border: 0; border-top: 1px solid #e5e7eb; }
-        #preview-pane table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
-        #preview-pane th, #preview-pane td { border: 1px solid #e5e7eb; padding: 0.5rem 0.75rem; text-align: left; }
-        #preview-pane th { background: #f9fafb; }
+        #preview-pane h1 { font-family: 'Outfit', sans-serif; font-size: 1.875rem; font-weight: 800; margin-bottom: 1.25rem; border-bottom: 2px solid #800000; padding-bottom: 0.5rem; color: #1e293b; }
+        .dark #preview-pane h1 { color: #f8fafc; border-bottom-color: #b31a1a; }
+        #preview-pane h2 { font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 700; margin-top: 1.75rem; margin-bottom: 0.75rem; color: #1e293b; }
+        .dark #preview-pane h2 { color: #f8fafc; }
+        #preview-pane h3 { font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.5rem; color: #334155; }
+        .dark #preview-pane h3 { color: #e2e8f0; }
+        #preview-pane p { margin-bottom: 1.25rem; line-height: 1.7; color: #334155; }
+        .dark #preview-pane p { color: #cbd5e1; }
+        #preview-pane ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1.25rem; }
+        #preview-pane ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 1.25rem; }
+        #preview-pane li { margin-bottom: 0.5rem; line-height: 1.6; color: #334155; }
+        .dark #preview-pane li { color: #cbd5e1; }
+        #preview-pane blockquote { border-left: 4px solid #800000; padding-left: 1.25rem; color: #475569; font-style: italic; margin-bottom: 1.25rem; }
+        .dark #preview-pane blockquote { border-left-color: #b31a1a; color: #94a3b8; }
+        #preview-pane code { background: #f1f5f9; padding: 0.2rem 0.4rem; border-radius: 0.375rem; font-family: monospace; font-size: 0.875rem; color: #800000; }
+        .dark #preview-pane code { background: #1e293b; color: #f43f5e; }
+        #preview-pane pre { background: #0f172a; color: #f8fafc; padding: 1.25rem; border-radius: 0.75rem; overflow-x: auto; margin-bottom: 1.25rem; border: 1px solid #1e293b; }
+        #preview-pane pre code { background: transparent; color: inherit; padding: 0; font-size: 0.875rem; }
+        #preview-pane table { width: 100%; border-collapse: collapse; margin-bottom: 1.25rem; font-size: 0.9rem; }
+        #preview-pane th, #preview-pane td { border: 1px solid #e2e8f0; padding: 0.75rem 1rem; text-align: left; }
+        .dark #preview-pane th, .dark #preview-pane td { border-color: #334155; }
+        #preview-pane th { background: #f8fafc; font-weight: 700; color: #1e293b; }
+        .dark #preview-pane th { background: #1e293b; color: #f8fafc; }
+        #preview-pane del { text-decoration: line-through; color: #94a3b8; }
+        #preview-pane mark { background-color: #fef08a; color: #1e293b; padding: 0.1rem 0.25rem; border-radius: 0.25rem; }
+        .dark #preview-pane mark { background-color: #854d0e; color: #fef08a; }
+        #preview-pane hr { margin: 2rem 0; border: 0; border-top: 1px solid #e2e8f0; }
+        .dark #preview-pane hr { border-top-color: #334155; }
 
         html, body { overscroll-behavior-y: contain; }
-    #preview-pane th { background: #f9fafb; }
-
-    html, body { overscroll-behavior-y: contain; }
-
-    /* --- Dark mode overrides --- */
-    html.dark body {
-      background-color: #020617;
-      color: #e5e7eb;
-    }
-
-    html.dark .bg-white {
-      background-color: #020617 !important;
-    }
-    html.dark .bg-gray-50 {
-      background-color: #020617 !important;
-    }
-
-    html.dark .border-gray-100,
-    html.dark .border-gray-200 {
-      border-color: #111827 !important;
-    }
-
-    html.dark .text-gray-900,
-    html.dark .text-gray-800 {
-      color: #e5e7eb !important;
-    }
-    html.dark .text-gray-700 {
-      color: #d1d5db !important;
-    }
-    html.dark .text-gray-500,
-    html.dark .text-gray-400 {
-      color: #9ca3af !important;
-    }
-
-    html.dark input[type="text"],
-    html.dark textarea {
-      background-color: #020617;
-      color: #e5e7eb;
-    }
-
-    html.dark #preview-pane {
-      background-color: #020617;
-    }
-</style>
+        
+        /* Drag and Drop visual feedback */
+        .drag-over {
+            background-color: rgba(128, 0, 0, 0.08) !important;
+            border-color: #800000 !important;
+        }
+        .dark .drag-over {
+            background-color: rgba(179, 26, 26, 0.15) !important;
+            border-color: #b31a1a !important;
+        }
+    </style>
 </head>
-<body class="bg-gray-50 text-gray-900 overflow-hidden">
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden">
 
     <div id="app" class="flex h-screen w-full">
         <!-- SIDEBAR -->
-        <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 bg-white border-r border-gray-200 flex flex-col transition-transform lg:relative lg:translate-x-0 -translate-x-full">
-            <div class="p-6 border-b border-gray-200">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center gap-2">
-                        <div class="p-1.5 bg-blue-600 rounded-lg shadow-sm">
-                            <i data-lucide="book-open" class="text-white w-5 h-5"></i>
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-transform lg:relative lg:translate-x-0 -translate-x-full shrink-0 shadow-lg lg:shadow-none">
+            <!-- Sidebar Header / Logo -->
+            <div class="p-6 border-b border-slate-200 dark:border-slate-800">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-3">
+                        <!-- Atomic Logo SVG -->
+                        <div class="shrink-0">
+                            <svg viewBox="0 0 512 512" class="w-10 h-10 shadow-md rounded-xl" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <rect width="512" height="512" rx="100" fill="#800000"/>
+                              <g stroke="white" stroke-width="15" opacity="0.8">
+                                <ellipse cx="256" cy="220" rx="140" ry="50" transform="rotate(0 256 220)" />
+                                <ellipse cx="256" cy="220" rx="140" ry="50" transform="rotate(60 256 220)" />
+                                <ellipse cx="256" cy="220" rx="140" ry="50" transform="rotate(-60 256 220)" />
+                              </g>
+                              <circle cx="256" cy="220" r="26" fill="white"/>
+                              <text x="50%" y="420" text-anchor="middle" fill="white" font-family="sans-serif" font-weight="bold" font-size="64px">ANoteshelf</text>
+                            </svg>
                         </div>
-                        <h1 class="text-lg font-bold tracking-tight">Nexus</h1>
+                        <div class="flex flex-col text-left">
+                            <h1 class="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-white">Noteshelf</h1>
+                            <span class="text-[9px] font-bold text-maroon dark:text-maroon-light uppercase tracking-widest leading-none">Atomic System</span>
+                        </div>
                     </div>
-                    <button onclick="toggleSidebar()" class="lg:hidden p-2 text-gray-400 hover:text-red-600">
+                    <button onclick="toggleSidebar()" class="lg:hidden p-1.5 text-slate-400 hover:text-maroon dark:hover:text-maroon-light rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800">
                         <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
                 </div>
+                
                 <div class="space-y-2">
-                    <button onclick="connectFolder()" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-md shadow-blue-100">
-    <i data-lucide="folder-plus" class="w-4 h-4"></i>
-    Add Folder
-</button>
-
-<!-- NEW: New File button in sidebar -->
-<button onclick="createNewFile()" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-200 transition-all">
-    <i data-lucide="file-plus" class="w-4 h-4"></i>
-    New File
-</button>
-
-<button onclick="clearLibrary()" class="w-full flex items-center justify-center gap-2 px-4 py-2 text-gray-400 hover:text-red-500 text-xs font-semibold transition-colors">
-    <i data-lucide="trash-2" class="w-3 h-3"></i>
-    Clear Library
-</button>
+                    <button onclick="connectFolder()" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-maroon hover:bg-maroon-dark text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-maroon/20 hover:scale-[1.02] duration-150">
+                        <i data-lucide="folder-plus" class="w-4 h-4"></i>
+                        Add Folder
+                    </button>
+                    
+                    <button onclick="createNewFile()" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all">
+                        <i data-lucide="file-plus" class="w-4 h-4"></i>
+                        New File
+                    </button>
+                    
+                    <button onclick="clearLibrary()" class="w-full flex items-center justify-center gap-2 px-4 py-2 text-slate-400 hover:text-red-500 dark:hover:text-red-400 text-[10px] font-bold uppercase transition-colors">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        Clear Library
+                    </button>
                 </div>
             </div>
 
-            <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
-                <h2 class="px-3 text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Folders & Sources</h2>
-                <div id="folder-tree" class="space-y-1">
-                    <p class="px-3 text-xs text-gray-400 italic">No folders connected.</p>
+            <!-- Folders, Tags & Tree Navigation -->
+            <div class="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-6 text-left">
+                <div>
+                    <h2 class="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">Folders & Sources</h2>
+                    <div id="folder-tree" class="space-y-1">
+                        <p class="px-3 text-xs text-slate-400 dark:text-slate-500 italic">No folders connected.</p>
+                    </div>
+                </div>
+                
+                <div>
+                    <h2 class="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">Tags</h2>
+                    <div id="tags-list" class="flex flex-wrap gap-1 px-3">
+                        <p class="text-xs text-slate-400 dark:text-slate-500 italic">No tags found.</p>
+                    </div>
                 </div>
             </div>
 
-            <div class="p-4 bg-gray-50 border-t border-gray-200">
-                <div class="flex items-center gap-2 text-[10px] text-gray-400 font-bold uppercase tracking-tighter">
-                    <div id="sync-indicator" class="w-2 h-2 rounded-full bg-gray-300"></div>
+            <!-- Sidebar Footer Status -->
+            <div class="p-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 space-y-3 shrink-0">
+                <!-- Install App -->
+                <button id="pwa-install-btn" onclick="triggerPWAInstall()" class="hidden w-full flex items-center justify-center gap-2 px-3 py-2 bg-maroon/10 hover:bg-maroon/20 text-maroon dark:text-maroon-light rounded-xl text-xs font-bold transition-all">
+                    <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                    Install Web App
+                </button>
+                
+                <div class="flex items-center gap-2.5 text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">
+                    <div id="sync-indicator" class="w-2 h-2 rounded-full bg-slate-300"></div>
                     <span id="sync-text">Multi-Source Ready</span>
                 </div>
             </div>
@@ -145,48 +189,66 @@
 
         <!-- MAIN CONTENT -->
         <main class="flex-1 flex flex-col min-w-0">
-           <header class="h-16 border-b border-gray-200 bg-white flex items-center gap-3 px-4 md:px-6 shrink-0">
-    <!-- Sidebar toggle (mobile) -->
-    <button onclick="toggleSidebar()" class="p-2 text-gray-500 hover:bg-gray-100 rounded-lg lg:hidden">
-        <i data-lucide="menu" class="w-5 h-5"></i>
-    </button>
+            <!-- Main Header -->
+            <header class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center gap-3 px-4 md:px-6 shrink-0 z-10">
+                <button onclick="toggleSidebar()" class="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl lg:hidden">
+                    <i data-lucide="menu" class="w-5 h-5"></i>
+                </button>
 
-    <!-- Search -->
-    <div class="relative flex-1 max-w-xl">
-        <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4"></i>
-        <input
-            type="text"
-            id="search-input"
-            oninput="handleSearch()"
-            placeholder="Search library names, content, tags..."
-            class="w-full pl-10 pr-4 py-2 bg-gray-100 border-transparent focus:bg-white focus:ring-2 focus:ring-blue-500 rounded-xl text-sm transition-all outline-none"
-        >
-    </div>
+                <!-- Search -->
+                <div class="relative flex-1 max-w-xl text-left">
+                    <i data-lucide="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
+                    <input
+                        type="text"
+                        id="search-input"
+                        oninput="handleSearch()"
+                        placeholder="Search library names, content, tags..."
+                        class="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-900 focus:border-maroon/30 dark:focus:border-maroon/30 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-maroon/10 rounded-xl text-sm transition-all outline-none text-slate-900 dark:text-white"
+                    >
+                </div>
 
-    <!-- Theme toggle -->
-    <button
-        id="theme-toggle"
-        onclick="toggleTheme()"
-        class="ml-2 p-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 flex items-center gap-2 text-xs font-semibold"
-    >
-        <i data-lucide="moon" class="w-4 h-4"></i>
-        <span class="hidden sm:inline">Dark</span>
-    </button>
-</header>
+                <!-- Theme toggle -->
+                <button
+                    id="theme-toggle"
+                    onclick="toggleTheme()"
+                    class="ml-2 p-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-xs font-bold transition-all"
+                >
+                    <i data-lucide="moon" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Theme</span>
+                </button>
+            </header>
 
+            <!-- Library View -->
             <div class="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
                 <div class="max-w-6xl mx-auto">
-                    <div class="mb-6 flex justify-between items-end">
+                    <!-- Library Subheader -->
+                    <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-left">
                         <div>
-                            <h2 id="view-title" class="text-xl md:text-2xl font-bold text-gray-800">Unified Library</h2>
-                            <p class="text-xs text-gray-400 mt-1">Searching across all connected folders</p>
+                            <h2 id="view-title" class="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">Unified Library</h2>
+                            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Searching across all connected folders</p>
                         </div>
-                        <p id="file-count" class="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">0 files</p>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <!-- Sort Select -->
+                            <div class="relative">
+                                <select id="sort-select" onchange="handleSortChange(this.value)" class="text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 pr-8 font-semibold text-slate-600 dark:text-slate-400 appearance-none focus:outline-none focus:ring-2 focus:ring-maroon cursor-pointer">
+                                    <option value="date-desc">Newest First</option>
+                                    <option value="date-asc">Oldest First</option>
+                                    <option value="name-asc">Name A-Z</option>
+                                    <option value="name-desc">Name Z-A</option>
+                                </select>
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                                    <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+                                </div>
+                            </div>
+                            <p id="file-count" class="text-xs font-bold text-maroon dark:text-maroon-light bg-maroon/5 dark:bg-maroon/10 px-3 py-2 rounded-full border border-maroon/10 dark:border-maroon/20">0 files</p>
+                        </div>
                     </div>
-                    <div id="file-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    
+                    <!-- File Grid -->
+                    <div id="file-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-left">
                         <div class="col-span-full py-20 flex flex-col items-center justify-center text-center opacity-50">
-                            <i data-lucide="folder-search" class="w-12 h-12 mb-4 text-gray-300"></i>
-                            <p class="text-gray-500 font-medium">Click "Add Folder" to import your OneDrive apps</p>
+                            <i data-lucide="folder-search" class="w-12 h-12 mb-4 text-slate-300 dark:text-slate-700"></i>
+                            <p class="text-slate-500 dark:text-slate-400 font-medium">Click "Add Folder" to connect your markdown sync directories</p>
                         </div>
                     </div>
                 </div>
@@ -195,22 +257,24 @@
 
         <!-- EDITOR MODAL -->
         <div id="editor-modal" class="hidden fixed inset-0 z-50 flex justify-end">
-            <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeEditor()"></div>
-            <div class="relative w-full lg:max-w-[95%] bg-white shadow-2xl h-full flex flex-col transition-transform duration-300">
-                <header class="px-4 md:px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
+            <div class="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm" onclick="closeEditor()"></div>
+            <div class="relative w-full lg:max-w-[95%] bg-white dark:bg-slate-900 shadow-2xl h-full flex flex-col transition-transform duration-300">
+                
+                <!-- Editor Header -->
+                <header class="px-4 md:px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 shrink-0 text-left">
                     <div class="min-w-0 flex-1 mr-4">
                         <input
-    id="edit-filename-input"
-    type="text"
-    class="text-lg font-bold truncate bg-transparent border-none focus:outline-none w-full"
-    value="Filename.md"
-/>
-                        <p id="edit-meta" class="text-[10px] text-gray-400 font-bold uppercase tracking-widest"></p>
+                            id="edit-filename-input"
+                            type="text"
+                            class="text-lg font-bold bg-transparent border-none focus:outline-none w-full text-slate-900 dark:text-white"
+                            value="Filename.md"
+                        />
+                        <p id="edit-meta" class="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest"></p>
                     </div>
                     
                     <div class="flex items-center gap-1 md:gap-2">
                         <!-- View Controls -->
-                        <div class="flex bg-gray-100 p-1 rounded-xl mr-2">
+                        <div class="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mr-2">
                             <button onclick="setEditorMode('edit')" id="btn-mode-edit" class="p-2 rounded-lg transition-all" title="Edit Only">
                                 <i data-lucide="edit-3" class="w-4 h-4"></i>
                             </button>
@@ -222,29 +286,58 @@
                             </button>
                         </div>
 
-                        <button id="save-btn" onclick="saveChanges()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all whitespace-nowrap">
+                        <!-- Trash Button inside Editor -->
+                        <button onclick="deleteCurrentFile()" class="p-2 text-slate-400 hover:text-red-500 dark:hover:text-red-400 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all mr-1" title="Delete File">
+                            <i data-lucide="trash-2" class="w-5 h-5"></i>
+                        </button>
+
+                        <button id="save-btn" onclick="saveChanges()" class="flex items-center gap-2 px-4 py-2 bg-maroon text-white rounded-xl text-sm font-bold hover:bg-maroon-dark shadow-lg shadow-maroon/20 transition-all whitespace-nowrap">
                             <i data-lucide="save" class="w-4 h-4"></i> <span class="hidden sm:inline">Save</span>
                         </button>
-                        <button onclick="closeEditor()" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                            <i data-lucide="x" class="w-6 h-6 text-gray-400"></i>
+                        <button onclick="closeEditor()" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
+                            <i data-lucide="x" class="w-6 h-6 text-slate-400 dark:text-slate-500"></i>
                         </button>
                     </div>
                 </header>
 
                 <!-- PANE CONTENT -->
-                <div class="flex-1 flex overflow-hidden bg-gray-50">
-                    <!-- RAW TEXT AREA -->
-                    <textarea id="editor-textarea" 
-                        class="flex-1 p-6 md:p-10 font-mono text-base outline-none resize-none bg-white text-gray-800 border-r border-gray-100 leading-relaxed shadow-inner"
-                        placeholder="Start typing markdown..."></textarea>
+                <div class="flex-1 flex overflow-hidden bg-slate-50 dark:bg-slate-950">
+                    <!-- EDITOR PANE WITH TOOLBAR -->
+                    <div id="editor-pane" class="flex-1 flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                        <!-- TOOLBAR -->
+                        <div class="px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-1.5 bg-slate-50 dark:bg-slate-900/50 shrink-0">
+                            <button onclick="insertMarkdown('bold')" class="p-1.5 text-slate-500 hover:text-maroon dark:hover:text-maroon-light rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all" title="Bold"><i data-lucide="bold" class="w-4 h-4"></i></button>
+                            <button onclick="insertMarkdown('italic')" class="p-1.5 text-slate-500 hover:text-maroon dark:hover:text-maroon-light rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all" title="Italic"><i data-lucide="italic" class="w-4 h-4"></i></button>
+                            <div class="w-px h-5 bg-slate-200 dark:bg-slate-800 mx-1"></div>
+                            <button onclick="insertMarkdown('h1')" class="p-1.5 text-slate-500 hover:text-maroon dark:hover:text-maroon-light rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all font-bold text-xs" title="Heading 1">H1</button>
+                            <button onclick="insertMarkdown('h2')" class="p-1.5 text-slate-500 hover:text-maroon dark:hover:text-maroon-light rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all font-bold text-xs" title="Heading 2">H2</button>
+                            <button onclick="insertMarkdown('h3')" class="p-1.5 text-slate-500 hover:text-maroon dark:hover:text-maroon-light rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all font-bold text-xs" title="Heading 3">H3</button>
+                            <div class="w-px h-5 bg-slate-200 dark:bg-slate-800 mx-1"></div>
+                            <button onclick="insertMarkdown('list')" class="p-1.5 text-slate-500 hover:text-maroon dark:hover:text-maroon-light rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all" title="Bullet List"><i data-lucide="list" class="w-4 h-4"></i></button>
+                            <button onclick="insertMarkdown('todolist')" class="p-1.5 text-slate-500 hover:text-maroon dark:hover:text-maroon-light rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all" title="Todo List"><i data-lucide="list-todo" class="w-4 h-4"></i></button>
+                            <button onclick="insertMarkdown('quote')" class="p-1.5 text-slate-500 hover:text-maroon dark:hover:text-maroon-light rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all" title="Quote"><i data-lucide="quote" class="w-4 h-4"></i></button>
+                            <div class="w-px h-5 bg-slate-200 dark:bg-slate-800 mx-1"></div>
+                            <button onclick="insertMarkdown('code')" class="p-1.5 text-slate-500 hover:text-maroon dark:hover:text-maroon-light rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all" title="Code Block"><i data-lucide="code" class="w-4 h-4"></i></button>
+                            <button onclick="insertMarkdown('link')" class="p-1.5 text-slate-500 hover:text-maroon dark:hover:text-maroon-light rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all" title="Link"><i data-lucide="link" class="w-4 h-4"></i></button>
+                            <button onclick="insertMarkdown('table')" class="p-1.5 text-slate-500 hover:text-maroon dark:hover:text-maroon-light rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all" title="Table"><i data-lucide="table" class="w-4 h-4"></i></button>
+                        </div>
+                        
+                        <textarea id="editor-textarea" 
+                            spellcheck="false" 
+                            autocorrect="off" 
+                            autocapitalize="off"
+                            class="flex-1 p-6 md:p-8 font-mono text-sm md:text-base outline-none resize-none bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 leading-relaxed shadow-inner"
+                            placeholder="Start typing markdown..."></textarea>
+                    </div>
                     
                     <!-- RENDERED PREVIEW -->
                     <div id="preview-pane" 
-                        class="flex-1 p-6 md:p-10 overflow-y-auto bg-gray-50 custom-scrollbar prose max-w-none">
+                        class="flex-1 p-6 md:p-10 overflow-y-auto bg-slate-50 dark:bg-slate-950 custom-scrollbar prose dark:prose-invert max-w-none text-left">
                     </div>
                 </div>
 
-                <footer class="p-4 bg-white border-t border-gray-100 flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                <!-- Editor Footer -->
+                <footer class="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex justify-between text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest shrink-0">
                     <span id="word-count">0 words</span>
                     <div id="view-indicator">Split View</div>
                 </footer>
@@ -254,72 +347,124 @@
 
     <script>
         let files = [];
-let selectedFile = null;
-let searchQuery = "";
-let selectedSource = null;
-let currentMode = 'split'; // 'edit', 'split', 'preview'
+        let selectedFile = null;
+        let searchQuery = "";
+        let selectedSource = null;
+        let selectedPath = null;
+        let selectedTag = null;
+        let currentMode = 'split'; 
+        let currentSort = 'date-desc';
+        
+        let sourceRoots = {};
+        let connectedFolders = {}; // e.g. { "SourceName": Set(["Root", "Drafts", "Drafts/Subfolder"]) }
+        
+        let currentTheme = 'light';
+        let deferredPrompt = null;
+        
+        let isScrollingEditor = false;
+        let isScrollingPreview = false;
 
-// NEW: store root directory handles by source name (folder name)
-let sourceRoots = {};
+        function applyTheme(theme) {
+            currentTheme = theme;
+            const root = document.documentElement;
+            const btn = document.getElementById('theme-toggle');
 
-// Theme state
-let currentTheme = 'light';
-
-function applyTheme(theme) {
-    currentTheme = theme;
-    const root = document.documentElement;
-    const btn = document.getElementById('theme-toggle');
-
-    if (theme === 'dark') {
-        root.classList.add('dark');
-        localStorage.setItem('theme', 'dark');
-        if (btn) {
-            btn.innerHTML = '<i data-lucide="sun" class="w-4 h-4"></i><span class="hidden sm:inline">Light</span>';
+            if (theme === 'dark') {
+                root.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+                if (btn) {
+                    btn.innerHTML = '<i data-lucide="sun" class="w-4 h-4"></i><span class="hidden sm:inline">Light Mode</span>';
+                }
+            } else {
+                root.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+                if (btn) {
+                    btn.innerHTML = '<i data-lucide="moon" class="w-4 h-4"></i><span class="hidden sm:inline">Dark Mode</span>';
+                }
+            }
+            lucide.createIcons();
         }
-    } else {
-        root.classList.remove('dark');
-        localStorage.setItem('theme', 'light');
-        if (btn) {
-            btn.innerHTML = '<i data-lucide="moon" class="w-4 h-4"></i><span class="hidden sm:inline">Dark</span>';
+
+        function toggleTheme() {
+            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
         }
-    }
 
-    lucide.createIcons();
-}
+        function init() {
+            lucide.createIcons();
 
-function toggleTheme() {
-    applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
-}
+            // Initialize marked options for line breaks and GFM support
+            if (typeof marked !== 'undefined') {
+                if (typeof marked.use === 'function') {
+                    marked.use({ breaks: true, gfm: true });
+                } else if (typeof marked.setOptions === 'function') {
+                    marked.setOptions({ breaks: true, gfm: true });
+                }
+            }
 
-function init() {
-    lucide.createIcons();
+            // Register Service Worker
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('sw.js')
+                    .then(() => console.log('Service Worker registered.'))
+                    .catch(err => console.log('SW registration failed:', err));
+            }
 
-    // Register Service Worker
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js')
-            .then(() => console.log('Nexus Service Worker registered.'))
-            .catch(err => console.log('SW registration failed:', err));
-    }
+            // Set default mode based on screen size
+            if (window.innerWidth < 768) {
+                currentMode = 'edit';
+            }
 
-    // Set default mode based on screen size
-    if (window.innerWidth < 768) {
-        currentMode = 'edit';
-    }
+            // Theme init: stored value -> system preference -> light
+            const storedTheme = localStorage.getItem('theme');
+            if (storedTheme === 'dark' || storedTheme === 'light') {
+                applyTheme(storedTheme);
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                applyTheme('dark');
+            } else {
+                applyTheme('light');
+            }
+            
+            // Setup Scroll Synchronizer
+            setupScrollSync();
 
-    // Theme init: stored value -> system preference -> light
-    const storedTheme = localStorage.getItem('theme');
-    if (storedTheme === 'dark' || storedTheme === 'light') {
-        applyTheme(storedTheme);
-    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        applyTheme('dark');
-    } else {
-        applyTheme('light');
-    }
-}
+            // PWA Install Prompt Listener
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                showInstallButton();
+            });
+
+            window.addEventListener('appinstalled', () => {
+                hideInstallButton();
+                deferredPrompt = null;
+            });
+        }
+
+        // PWA Installation functions
+        function showInstallButton() {
+            const btn = document.getElementById('pwa-install-btn');
+            if (btn) {
+                btn.classList.remove('hidden');
+                lucide.createIcons();
+            }
+        }
+
+        function hideInstallButton() {
+            const btn = document.getElementById('pwa-install-btn');
+            if (btn) btn.classList.add('hidden');
+        }
+
+        async function triggerPWAInstall() {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`PWA Prompt Response: ${outcome}`);
+            deferredPrompt = null;
+            hideInstallButton();
+        }
 
         function setEditorMode(mode) {
             currentMode = mode;
-            const editor = document.getElementById('editor-textarea');
+            const editorPane = document.getElementById('editor-pane');
             const preview = document.getElementById('preview-pane');
             const indicator = document.getElementById('view-indicator');
             
@@ -329,46 +474,122 @@ function init() {
                 const btn = document.getElementById(`btn-mode-${b}`);
                 if (btn) {
                     if (b === mode) {
-                        btn.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
-                        btn.classList.remove('text-gray-500');
+                        btn.classList.add('bg-white', 'dark:bg-slate-700', 'text-maroon', 'dark:text-white', 'shadow-sm');
+                        btn.classList.remove('text-slate-500');
                     } else {
-                        btn.classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
-                        btn.classList.add('text-gray-500');
+                        btn.classList.remove('bg-white', 'dark:bg-slate-700', 'text-maroon', 'dark:text-white', 'shadow-sm');
+                        btn.classList.add('text-slate-500');
                     }
                 }
             });
 
             // Pane visibility
             if (mode === 'edit') {
-                editor.classList.remove('hidden');
+                editorPane.classList.remove('hidden');
                 preview.classList.add('hidden');
                 indicator.innerText = "Edit Mode";
-            } else if (mode === 'preview') {
-                editor.classList.add('hidden');
-                preview.classList.remove('hidden');
-                indicator.innerText = "Preview Mode";
             } else {
-                editor.classList.remove('hidden');
-                preview.classList.remove('hidden');
-                indicator.innerText = "Split View";
+                if (mode === 'preview') {
+                    editorPane.classList.add('hidden');
+                    preview.classList.remove('hidden');
+                    indicator.innerText = "Preview Mode";
+                } else {
+                    editorPane.classList.remove('hidden');
+                    preview.classList.remove('hidden');
+                    indicator.innerText = "Split View";
+                }
+                // Force immediate render of preview when switching into split or preview views
+                updateEditorContent(true);
             }
             lucide.createIcons();
         }
 
         function clearLibrary() {
-    if(confirm("Are you sure you want to clear all connected folders? (This won't delete your actual files)")) {
-        files = [];
-        selectedSource = null;
-        sourceRoots = {}; // NEW
-        renderFolderTree();
-        renderFiles();
-    }
-}
+            if(confirm("Are you sure you want to clear all connected folders? (This won't delete your actual files)")) {
+                files = [];
+                selectedSource = null;
+                selectedPath = null;
+                selectedTag = null;
+                sourceRoots = {}; 
+                connectedFolders = {};
+                renderFolderTree();
+                renderTags();
+                renderFiles();
+            }
+        }
 
-      async function backgroundLoadContent(rootName) {
-            // Grab all files for this source that have no content yet
+        // Hashtag extraction utility
+        function extractTags(file) {
+            if (!file.content) return [];
+            
+            // Remove code blocks and inline code to prevent false positives
+            const cleanContent = file.content.replace(/```[\s\S]*?```/g, '').replace(/`[^`]+`/g, '');
+            
+            const tags = [];
+            const regex = /(?:^|\s)#([a-zA-Z][a-zA-Z0-9-_]*)/g;
+            let match;
+            while ((match = regex.exec(cleanContent)) !== null) {
+                const tag = match[1].toLowerCase();
+                // Ignore headers catch-all if missing whitespace
+                if (tag.length > 1) {
+                    tags.push(tag);
+                }
+            }
+            return [...new Set(tags)];
+        }
+
+        function getGlobalTags() {
+            const tags = new Set();
+            files.forEach(f => {
+                if (f.tags) {
+                    f.tags.forEach(t => tags.add(t));
+                }
+            });
+            return Array.from(tags).sort();
+        }
+
+        function renderTags() {
+            const list = document.getElementById('tags-list');
+            const tags = getGlobalTags();
+            
+            if (tags.length === 0) {
+                list.innerHTML = '<p class="text-xs text-slate-400 dark:text-slate-500 italic px-3">No tags found.</p>';
+                return;
+            }
+
+            list.innerHTML = tags.map(tag => {
+                const isSelected = selectedTag === tag;
+                return `
+                    <button onclick="toggleTagFilter('${tag}')" class="text-[11px] px-2 py-0.5 rounded-lg border font-semibold transition-all ${isSelected ? 'bg-maroon text-white border-maroon' : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-maroon dark:hover:border-maroon-light'}">
+                        #${tag}
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function toggleTagFilter(tag) {
+            selectedTag = selectedTag === tag ? null : tag;
+            renderTags();
+            renderFiles();
+        }
+
+        // Format File Bytes
+        function formatBytes(bytes) {
+            if (bytes === 0 || !bytes) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        function getWordCount(content) {
+            if (!content) return 0;
+            return content.trim().split(/\s+/).filter(Boolean).length;
+        }
+
+        async function backgroundLoadContent(rootName) {
             const pending = () => files.filter(f => f.source === rootName && f.content === null);
-            const BATCH = 5; // read N files at a time to avoid overwhelming mobile I/O
+            const BATCH = 5; 
 
             updateSyncStatus('Indexing content…', 'bg-amber-500');
 
@@ -379,57 +600,64 @@ function init() {
                         const fileData = await file.handle.getFile();
                         file.content = await fileData.text();
                         file.preview = file.content.replace(/[#*`]/g, '').substring(0, 80);
+                        file.tags = extractTags(file);
                     } catch (e) {
-                        file.content = ''; // mark as attempted so we don't retry forever
+                        file.content = ''; 
                     }
                 }));
 
-                // Update the count indicator to show indexing progress
                 const remaining = pending().length;
                 const total = files.filter(f => f.source === rootName).length;
                 const done = total - remaining;
                 updateSyncStatus(`Indexing ${done}/${total}…`, 'bg-amber-500');
 
-                // Yield to the browser between batches so UI stays responsive
+                // Render tags progressively as they are discovered
+                renderTags();
+
                 await new Promise(r => setTimeout(r, 0));
             }
 
             updateSyncStatus('Sync Active', 'bg-green-500');
-            renderFiles(); // final re-render so search now has full content
+            renderTags();
+            renderFiles(); 
         }
 
         async function connectFolder() {
-    if (!('showDirectoryPicker' in window)) {
-        alert("The File System Access API is not supported in this browser. Please use Chrome or Edge on PC.");
-        return;
-    }
+            if (!('showDirectoryPicker' in window)) {
+                alert("The File System Access API is not supported in this browser. Please use Chrome, Edge or Opera on PC.");
+                return;
+            }
 
-    try {
-        const directoryHandle = await window.showDirectoryPicker();
+            try {
+                const directoryHandle = await window.showDirectoryPicker();
+                sourceRoots[directoryHandle.name] = directoryHandle;
+                
+                // Initialize directory registry
+                if (!connectedFolders[directoryHandle.name]) {
+                    connectedFolders[directoryHandle.name] = new Set();
+                }
+                connectedFolders[directoryHandle.name].add('Root');
 
-        // Remember the root handle keyed by its name (matches file.source)
-        sourceRoots[directoryHandle.name] = directoryHandle;
+                updateSyncStatus('Scanning folder…', 'bg-amber-500');
 
-        updateSyncStatus('Scanning folder…', 'bg-amber-500');
+                // Fast metadata-only scan
+                await scanDirectory(directoryHandle, directoryHandle.name);
+                
+                renderFolderTree();
+                renderFiles();
+                
+                updateSyncStatus('Loading…', 'bg-amber-400');
 
-        // Phase 1: fast metadata-only scan — UI renders immediately after
-        await scanDirectory(directoryHandle, directoryHandle.name);
-        renderFolderTree();
-        renderFiles();
-        updateSyncStatus('Loading…', 'bg-amber-400');
+                // Background loading of content (lazy, doesn't lock UI)
+                backgroundLoadContent(directoryHandle.name);
 
-        // Phase 2: load all file content in the background (no await)
-        // UI is already responsive; search gains content progressively
-        backgroundLoadContent(directoryHandle.name);
-
-    } catch (err) {
-        console.error(err);
-        updateSyncStatus('Ready', 'bg-gray-300');
-    }
-}
+            } catch (err) {
+                console.error(err);
+                updateSyncStatus('Ready', 'bg-gray-300');
+            }
+        }
 
         async function scanDirectory(handle, rootName, currentPath = "") {
-            // Collect all entries in parallel batches
             const fileEntries = [];
             const dirEntries = [];
 
@@ -441,24 +669,31 @@ function init() {
                 }
             }
 
-            // Read metadata for all files in this directory in parallel (no content yet)
+            // Save subfolders to registry
+            if (currentPath) {
+                if (!connectedFolders[rootName]) connectedFolders[rootName] = new Set();
+                connectedFolders[rootName].add(currentPath);
+            }
+
             const metaResults = await Promise.all(fileEntries.map(async entry => {
                 const fileData = await entry.getFile();
                 return {
                     id: Math.random().toString(36).substr(2, 9),
                     name: entry.name,
-                    content: null,           // lazy — loaded on open
-                    preview: '',             // filled below
+                    content: null,          
+                    preview: '',            
                     path: currentPath || 'Root',
                     source: rootName,
                     handle: entry,
+                    size: fileData.size,
                     updatedAt: new Date(fileData.lastModified).toISOString()
                 };
             }));
 
+            // Avoid duplicating files on double scanning
+            files = files.filter(f => f.source !== rootName || f.path !== (currentPath || 'Root'));
             files.push(...metaResults);
 
-            // Recurse into subdirectories in parallel
             await Promise.all(dirEntries.map(entry => {
                 const newPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
                 return scanDirectory(entry, rootName, newPath);
@@ -469,280 +704,823 @@ function init() {
             const grid = document.getElementById('file-grid');
             const countLabel = document.getElementById('file-count');
             const q = searchQuery.toLowerCase();
+            
             const filtered = files.filter(f => {
-                // Always search name/path/source; search content only if already loaded
                 const matchesSearch = !q ||
                                      f.name.toLowerCase().includes(q) ||
                                      (f.content && f.content.toLowerCase().includes(q)) ||
                                      f.path.toLowerCase().includes(q) ||
                                      f.source.toLowerCase().includes(q);
+                                     
                 const matchesSource = !selectedSource || f.source === selectedSource;
-                return matchesSearch && matchesSource;
+                
+                let matchesPath = true;
+                if (selectedSource && selectedPath) {
+                    if (selectedPath === 'Root') {
+                        matchesPath = f.path === 'Root' || !f.path;
+                    } else {
+                        matchesPath = f.path === selectedPath;
+                    }
+                }
+                
+                const matchesTag = !selectedTag || (f.tags && f.tags.includes(selectedTag));
+                
+                return matchesSearch && matchesSource && matchesPath && matchesTag;
+            });
+
+            // Sorting
+            filtered.sort((a, b) => {
+                if (currentSort === 'name-asc') {
+                    return a.name.localeCompare(b.name);
+                } else if (currentSort === 'name-desc') {
+                    return b.name.localeCompare(a.name);
+                } else if (currentSort === 'date-asc') {
+                    return new Date(a.updatedAt) - new Date(b.updatedAt);
+                } else if (currentSort === 'date-desc') {
+                    return new Date(b.updatedAt) - new Date(a.updatedAt);
+                }
+                return 0;
             });
 
             if (filtered.length === 0) {
-                grid.innerHTML = `<div class="col-span-full py-20 flex flex-col items-center justify-center text-center opacity-50"><i data-lucide="search-x" class="w-12 h-12 mb-4 text-gray-300"></i><p class="text-gray-500 font-medium">No files found.</p></div>`;
-            } else {
-                grid.innerHTML = filtered.map(file => `
-                    <div onclick="openEditor('${file.id}')" class="bg-white p-5 rounded-2xl border border-gray-200 hover:border-blue-400 hover:shadow-lg transition-all cursor-pointer flex flex-col h-48 group">
-                        <div class="flex justify-between items-start mb-3">
-                            <div class="p-2 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors"><i data-lucide="file-text" class="w-5 h-5"></i></div>
-                            <span class="text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full border bg-blue-50 text-blue-600 border-blue-100">${file.source}</span>
-                        </div>
-                        <h3 class="font-bold text-gray-900 truncate">${file.name}</h3>
-                        <p class="text-[10px] text-gray-400 mb-2 truncate uppercase font-bold tracking-tighter"><i data-lucide="folder" class="inline w-3 h-3 mr-1"></i> ${file.path}</p>
-                        <p class="text-sm text-gray-500 line-clamp-2 italic overflow-hidden">${file.preview ? '"' + file.preview + '…"' : '<span class="opacity-40">tap to preview</span>'}</p>
+                grid.innerHTML = `
+                    <div class="col-span-full py-20 flex flex-col items-center justify-center text-center opacity-50">
+                        <i data-lucide="search-x" class="w-12 h-12 mb-4 text-slate-300 dark:text-slate-700"></i>
+                        <p class="text-slate-500 dark:text-slate-400 font-medium">No files found.</p>
                     </div>
-                `).join('');
+                `;
+            } else {
+                grid.innerHTML = filtered.map(file => {
+                    const wordCount = file.content ? getWordCount(file.content) : 0;
+                    const sizeStr = formatBytes(file.size);
+                    const tagHTML = file.tags && file.tags.length > 0 
+                        ? `<div class="flex flex-wrap gap-1 mt-2.5">${file.tags.slice(0, 3).map(t => `<span class="text-[9px] bg-maroon/5 dark:bg-slate-800 text-maroon dark:text-slate-400 px-1.5 py-0.5 rounded border border-maroon/10 dark:border-slate-700">#${t}</span>`).join('')}</div>`
+                        : '';
+                    
+                    return `
+                        <div 
+                            onclick="openEditor('${file.id}')" 
+                            draggable="true" 
+                            ondragstart="handleDragStart(event, '${file.id}')" 
+                            class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-maroon dark:hover:border-maroon hover:shadow-lg transition-all cursor-pointer flex flex-col justify-between h-48 group"
+                        >
+                            <div class="min-w-0">
+                                <div class="flex justify-between items-start mb-3">
+                                    <div class="p-2 bg-maroon/5 dark:bg-maroon/10 text-maroon dark:text-maroon-light rounded-xl group-hover:bg-maroon group-hover:text-white transition-colors duration-150">
+                                        <i data-lucide="file-text" class="w-4 h-4"></i>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full border bg-slate-50 dark:bg-slate-850 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-850 truncate max-w-[120px]">${file.source}</span>
+                                        <button onclick="event.stopPropagation(); deleteFile('${file.id}')" class="p-1 hover:text-red-500 dark:hover:text-red-400 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity" title="Delete File">
+                                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <h3 class="font-bold text-slate-800 dark:text-white truncate text-sm" title="${file.name}">${file.name}</h3>
+                                <p class="text-[9px] text-slate-400 dark:text-slate-500 mb-1 truncate uppercase font-bold tracking-tighter"><i data-lucide="folder" class="inline w-3 h-3 mr-0.5"></i> ${file.path}</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 italic overflow-hidden">${file.preview ? '"' + file.preview + '…"' : '<span class="opacity-40">tap to preview</span>'}</p>
+                            </div>
+                            
+                            <div class="mt-3 flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 pt-2 shrink-0">
+                                <span class="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">${wordCount > 0 ? wordCount + ' words' : sizeStr}</span>
+                                <span class="text-[9px] text-slate-400 dark:text-slate-500 font-medium">${new Date(file.updatedAt).toLocaleDateString()}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
             }
             countLabel.innerText = `${filtered.length} files`;
             lucide.createIcons();
         }
 
+        // Folder tree rendering (supports subdirectories and creations/deletions)
         function renderFolderTree() {
             const tree = document.getElementById('folder-tree');
-            const sources = [...new Set(files.map(f => f.source))].sort();
+            const sources = Object.keys(sourceRoots).sort();
+            
             if (sources.length === 0) {
-                tree.innerHTML = '<p class="px-3 text-xs text-gray-400 italic">No folders connected.</p>';
+                tree.innerHTML = '<p class="px-3 text-xs text-slate-400 dark:text-slate-500 italic">No folders connected.</p>';
                 return;
             }
-            tree.innerHTML = `<div onclick="filterBySource(null)" class="flex items-center gap-2 px-3 py-2 text-sm font-medium ${!selectedSource ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-100'} rounded-lg cursor-pointer transition-colors"><i data-lucide="layers" class="w-4 h-4"></i>All Sources</div>` + sources.map(source => `
-                <div onclick="filterBySource('${source}')" class="flex items-center gap-2 px-3 py-2 text-sm font-medium ${selectedSource === source ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-100'} rounded-lg cursor-pointer transition-colors"><i data-lucide="database" class="w-4 h-4"></i>${source}</div>`).join('');
+
+            let html = '';
+            
+            // Add "All Documents" option
+            html += `
+                <div onclick="selectFolder(null, null)" class="flex items-center justify-between group px-3 py-2 text-xs font-semibold ${(!selectedSource && !selectedPath) ? 'bg-maroon/10 text-maroon dark:bg-maroon/20 dark:text-maroon-light' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'} rounded-xl cursor-pointer transition-all">
+                    <span class="flex items-center gap-2">
+                        <i data-lucide="layers" class="w-4 h-4"></i>
+                        <span>All Documents</span>
+                    </span>
+                    <span class="text-[9px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-450 px-2 py-0.5 rounded-full">${files.length}</span>
+                </div>
+            `;
+
+            sources.forEach(source => {
+                const isSourceSelected = selectedSource === source;
+                const isRootSelected = isSourceSelected && (selectedPath === 'Root' || !selectedPath);
+                
+                html += `
+                    <div class="mt-4 mb-1">
+                        <div onclick="selectFolder('${source}', 'Root')" class="flex items-center justify-between group px-3 py-1.5 text-xs font-bold ${isRootSelected ? 'bg-maroon/10 text-maroon dark:bg-maroon/20 dark:text-maroon-light' : 'text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'} rounded-xl cursor-pointer transition-all drop-zone" data-source="${source}" data-path="Root">
+                            <span class="flex items-center gap-1.5 truncate">
+                                <i data-lucide="folder-git" class="w-4 h-4 text-maroon dark:text-maroon-light shrink-0"></i>
+                                <span class="truncate">${source}</span>
+                            </span>
+                            <div class="flex items-center gap-1">
+                                <button onclick="event.stopPropagation(); promptCreateFolder('${source}', 'Root')" class="p-0.5 hover:text-maroon dark:hover:text-maroon-light rounded opacity-0 group-hover:opacity-100 transition-opacity" title="New Subfolder">
+                                    <i data-lucide="folder-plus" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="pl-2 mt-1 space-y-0.5 border-l border-slate-200 dark:border-slate-800 ml-4">
+                `;
+
+                // Render subfolders of this source
+                const folderPaths = Array.from(connectedFolders[source] || []).filter(p => p !== 'Root').sort();
+                
+                if (folderPaths.length === 0) {
+                    html += `<p class="pl-3 py-1 text-[10px] text-slate-400 dark:text-slate-500 italic">No subfolders</p>`;
+                } else {
+                    folderPaths.forEach(path => {
+                        const isSelected = selectedSource === source && selectedPath === path;
+                        const pathParts = path.split('/');
+                        const displayName = pathParts[pathParts.length - 1];
+                        const depth = pathParts.length - 1;
+                        
+                        html += `
+                            <div 
+                                onclick="selectFolder('${source}', '${path}')" 
+                                style="padding-left: ${depth * 6}px" 
+                                class="flex items-center justify-between group px-2.5 py-1.5 text-[11px] font-medium ${isSelected ? 'bg-maroon/10 text-maroon dark:bg-maroon/20 dark:text-maroon-light font-semibold' : 'text-slate-500 dark:text-slate-450 hover:bg-slate-100 dark:hover:bg-slate-800'} rounded-lg cursor-pointer transition-all drop-zone" 
+                                data-source="${source}" 
+                                data-path="${path}"
+                            >
+                                <span class="flex items-center gap-1.5 truncate">
+                                    <i data-lucide="folder" class="w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-maroon dark:text-maroon-light' : 'text-slate-400'}"></i>
+                                    <span class="truncate">${displayName}</span>
+                                </span>
+                                <div class="flex items-center opacity-0 group-hover:opacity-100 transition-opacity gap-1">
+                                    <button onclick="event.stopPropagation(); promptCreateFolder('${source}', '${path}')" class="p-0.5 hover:text-maroon rounded" title="New Subfolder">
+                                        <i data-lucide="folder-plus" class="w-3 h-3"></i>
+                                    </button>
+                                    <button onclick="event.stopPropagation(); deleteFolder('${source}', '${path}')" class="p-0.5 hover:text-red-500 rounded" title="Delete Folder">
+                                        <i data-lucide="trash-2" class="w-3 h-3"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+
+            tree.innerHTML = html;
             lucide.createIcons();
+            setupDragAndDrop(); // Initialize dragover and drop listeners
         }
 
-        function filterBySource(source) { selectedSource = source; renderFolderTree(); renderFiles(); }
-        function handleSearch() { searchQuery = document.getElementById('search-input').value; renderFiles(); }
-
-     async function openEditor(id) {
-    selectedFile = files.find(f => f.id === id);
-
-    const filenameInput = document.getElementById('edit-filename-input');
-    if (filenameInput) filenameInput.value = selectedFile.name;
-
-    document.getElementById('edit-meta').innerText = `${selectedFile.source} / ${selectedFile.path}`;
-    document.getElementById('editor-modal').classList.remove('hidden');
-
-    const textarea = document.getElementById('editor-textarea');
-
-    // If content not yet loaded, show a loading state and fetch it now
-    if (selectedFile.content === null) {
-        textarea.value = '';
-        textarea.placeholder = 'Loading…';
-        try {
-            const fileData = await selectedFile.handle.getFile();
-            const content = await fileData.text();
-            selectedFile.content = content;
-            // Cache a short preview for the card
-            selectedFile.preview = content.replace(/[#*`]/g, '').substring(0, 80);
-        } catch (e) {
-            textarea.placeholder = 'Could not load file.';
-            return;
-        }
-    }
-
-    textarea.placeholder = 'Start typing markdown…';
-    textarea.value = selectedFile.content;
-
-    // Re-detect mode for best layout on open
-    setEditorMode(window.innerWidth < 768 ? 'edit' : 'split');
-    updateEditorContent();
-    lucide.createIcons();
-}
-
-        function updateEditorContent() {
-            const text = document.getElementById('editor-textarea').value;
-            document.getElementById('preview-pane').innerHTML = marked.parse(text);
-            const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-            document.getElementById('word-count').innerText = `${words} words`;
+        function filterBySource(source) {
+            selectFolder(source, null);
         }
 
-        function closeEditor() { document.getElementById('editor-modal').classList.add('hidden'); }
-
-      async function saveChanges() {
-    if (!selectedFile) return;
-
-    const newContent = document.getElementById('editor-textarea').value;
-
-    // Get desired filename from input (fallback to current name)
-    const filenameInput = document.getElementById('edit-filename-input');
-    let desiredName = filenameInput ? filenameInput.value.trim() : selectedFile.name;
-
-    if (!desiredName) {
-        alert("Filename cannot be empty.");
-        return;
-    }
-
-    // Ensure .md extension
-    if (!desiredName.toLowerCase().endsWith('.md')) {
-        desiredName += '.md';
-    }
-
-    try {
-        if (desiredName !== selectedFile.name) {
-            // Need to "rename": create new file, write content, delete old file
-            const rootHandle = sourceRoots[selectedFile.source];
-            if (!rootHandle) {
-                alert("Cannot rename because the original folder handle is not available. Try reconnecting the folder.");
-                return;
+        function selectFolder(source, path) {
+            selectedSource = source;
+            selectedPath = path;
+            renderFolderTree();
+            renderFiles();
+            
+            const title = document.getElementById('view-title');
+            const subtitle = title.nextElementSibling;
+            if (!source) {
+                title.innerText = "Unified Library";
+                subtitle.innerText = "Searching across all connected folders";
+            } else {
+                title.innerText = source;
+                subtitle.innerText = path === 'Root' ? "Root directory" : `Folder: ${path}`;
             }
+        }
 
-            // Walk into the same folder as the current file
-            let dirHandle = rootHandle;
-            if (selectedFile.path && selectedFile.path !== 'Root') {
-                const segments = selectedFile.path.split('/');
-                for (const segment of segments) {
-                    if (!segment) continue;
-                    dirHandle = await dirHandle.getDirectoryHandle(segment);
+        function handleSearch() { 
+            searchQuery = document.getElementById('search-input').value; 
+            renderFiles(); 
+        }
+
+        function handleSortChange(val) {
+            currentSort = val;
+            renderFiles();
+        }
+
+        async function openEditor(id) {
+            selectedFile = files.find(f => f.id === id);
+
+            const filenameInput = document.getElementById('edit-filename-input');
+            if (filenameInput) filenameInput.value = selectedFile.name;
+
+            document.getElementById('edit-meta').innerText = `${selectedFile.source} / ${selectedFile.path}`;
+            document.getElementById('editor-modal').classList.remove('hidden');
+
+            const textarea = document.getElementById('editor-textarea');
+
+            if (selectedFile.content === null) {
+                textarea.value = '';
+                textarea.placeholder = 'Loading…';
+                try {
+                    const fileData = await selectedFile.handle.getFile();
+                    const content = await fileData.text();
+                    selectedFile.content = content;
+                    selectedFile.preview = content.replace(/[#*`]/g, '').substring(0, 80);
+                    selectedFile.tags = extractTags(selectedFile);
+                } catch (e) {
+                    textarea.placeholder = 'Could not load file contents.';
+                    return;
                 }
             }
 
-            // Create (or overwrite) the new name file
-            const newHandle = await dirHandle.getFileHandle(desiredName, { create: true });
-            const writableNew = await newHandle.createWritable();
-            await writableNew.write(newContent);
-            await writableNew.close();
+            textarea.placeholder = 'Start typing markdown…';
+            textarea.value = selectedFile.content;
 
-            // Try to remove the old file
-            try {
-                await dirHandle.removeEntry(selectedFile.name);
-            } catch (e) {
-                console.warn('Could not delete old file during rename', e);
+            setEditorMode(window.innerWidth < 768 ? 'edit' : 'split');
+            updateEditorContent(true);
+            lucide.createIcons();
+        }
+
+        // Memory-efficient O(N) word counting loop (zero allocations/garbage collection overhead)
+        function countWords(str) {
+            let count = 0;
+            let inWord = false;
+            for (let i = 0; i < str.length; i++) {
+                const code = str.charCodeAt(i);
+                if (code > 32) { // Non-whitespace characters (ascii > 32)
+                    if (!inWord) {
+                        count++;
+                        inWord = true;
+                    }
+                } else {
+                    inWord = false;
+                }
             }
+            return count;
+        }
 
-            // Update in-memory metadata
-            selectedFile.name = desiredName;
-            selectedFile.handle = newHandle;
-        } else {
-            // Name unchanged: just overwrite existing file
-            if (selectedFile.handle) {
-                const writable = await selectedFile.handle.createWritable();
-                await writable.write(newContent);
-                await writable.close();
+        let typingTimeout = null;
+        let previewTimeout = null;
+        let prismTimeout = null;
+
+        function updateEditorContent(force = false) {
+            if (force) {
+                if (typingTimeout) clearTimeout(typingTimeout);
+                if (previewTimeout) clearTimeout(previewTimeout);
+                if (prismTimeout) clearTimeout(prismTimeout);
+                runUpdateEditorContent();
+            } else {
+                // Debounce the entire update by 150ms to keep keystrokes fully native and lag-free
+                if (typingTimeout) clearTimeout(typingTimeout);
+                typingTimeout = setTimeout(runUpdateEditorContent, 150);
             }
         }
 
-        selectedFile.content = newContent;
-        selectedFile.updatedAt = new Date().toISOString();
+        function runUpdateEditorContent() {
+            const textarea = document.getElementById('editor-textarea');
+            if (!textarea) return;
+            const text = textarea.value;
 
-        const saveBtn = document.getElementById('save-btn');
-        const originalHTML = saveBtn.innerHTML;
-        saveBtn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Saved';
-        saveBtn.classList.replace('bg-blue-600', 'bg-emerald-600');
+            // 1. Calculate word count using optimized allocation-free loop
+            const words = countWords(text);
+            document.getElementById('word-count').innerText = `${words} words`;
 
-        renderFiles();
+            // 2. Skip preview rendering entirely if in edit-only mode
+            if (currentMode === 'edit') {
+                return;
+            }
 
-        setTimeout(() => {
-            saveBtn.innerHTML = originalHTML;
-            saveBtn.classList.replace('bg-emerald-600', 'bg-blue-600');
-            lucide.createIcons();
-        }, 2000);
+            // 3. Render preview
+            const highlightedText = text.replace(/==([^=\n]+)==/g, '<mark>$1</mark>');
+            document.getElementById('preview-pane').innerHTML = marked.parse(highlightedText);
 
-        lucide.createIcons();
-    } catch (err) {
-        console.error(err);
-        alert("Permission denied. Ensure the folder is still accessible.");
-        lucide.createIcons();
-    }
-}
+            // 4. Prism highlighting (delayed syntax render to prevent layout blocking)
+            if (prismTimeout) clearTimeout(prismTimeout);
+            prismTimeout = setTimeout(() => {
+                if (typeof Prism !== 'undefined') {
+                    Prism.highlightAllUnder(document.getElementById('preview-pane'));
+                }
+            }, 100);
+        }
 
-        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('-translate-x-full'); }
+        function closeEditor() { 
+            document.getElementById('editor-modal').classList.add('hidden'); 
+        }
+
+        // Markdown Injections
+        function insertMarkdown(type) {
+            const textarea = document.getElementById('editor-textarea');
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const text = textarea.value;
+            const selectedText = text.substring(start, end);
+            
+            let replacement = '';
+            let cursorOffset = 0;
+
+            switch (type) {
+                case 'bold':
+                    replacement = `**${selectedText || 'bold text'}**`;
+                    cursorOffset = selectedText ? 0 : 2;
+                    break;
+                case 'italic':
+                    replacement = `*${selectedText || 'italic text'}*`;
+                    cursorOffset = selectedText ? 0 : 1;
+                    break;
+                case 'h1':
+                    replacement = `\n# ${selectedText || 'Heading 1'}\n`;
+                    break;
+                case 'h2':
+                    replacement = `\n## ${selectedText || 'Heading 2'}\n`;
+                    break;
+                case 'h3':
+                    replacement = `\n### ${selectedText || 'Heading 3'}\n`;
+                    break;
+                case 'list':
+                    replacement = `\n- ${selectedText || 'List item'}`;
+                    break;
+                case 'todolist':
+                    replacement = `\n- [ ] ${selectedText || 'Task item'}`;
+                    break;
+                case 'quote':
+                    replacement = `\n> ${selectedText || 'Blockquote'}`;
+                    break;
+                case 'code':
+                    replacement = `\n\`\`\`javascript\n${selectedText || '// code here'}\n\`\`\`\n`;
+                    break;
+                case 'link':
+                    replacement = `[${selectedText || 'link description'}](https://example.com)`;
+                    cursorOffset = selectedText ? 0 : 18;
+                    break;
+                case 'table':
+                    replacement = `\n| Header 1 | Header 2 |\n| -------- | -------- |\n| Cell 1   | Cell 2   |\n`;
+                    break;
+            }
+
+            textarea.value = text.substring(0, start) + replacement + text.substring(end);
+            textarea.focus();
+            
+            if (cursorOffset > 0) {
+                textarea.setSelectionRange(start + cursorOffset, start + replacement.length - cursorOffset);
+            } else {
+                textarea.setSelectionRange(start + replacement.length, start + replacement.length);
+            }
+            
+            updateEditorContent();
+        }
+
+        // Scroll Sync Mechanism
+        function setupScrollSync() {
+            const editor = document.getElementById('editor-textarea');
+            const preview = document.getElementById('preview-pane');
+
+            if (!editor || !preview) return;
+
+            editor.onscroll = () => {
+                if (isScrollingPreview) {
+                    isScrollingPreview = false;
+                    return;
+                }
+                isScrollingEditor = true;
+                const scrollPct = editor.scrollTop / (editor.scrollHeight - editor.clientHeight);
+                preview.scrollTop = scrollPct * (preview.scrollHeight - preview.clientHeight);
+            };
+
+            preview.onscroll = () => {
+                if (isScrollingEditor) {
+                    isScrollingEditor = false;
+                    return;
+                }
+                isScrollingPreview = true;
+                const scrollPct = preview.scrollTop / (preview.scrollHeight - preview.clientHeight);
+                editor.scrollTop = scrollPct * (editor.scrollHeight - editor.clientHeight);
+            };
+        }
+
+        // File and folder CRUD operations (Direct disk mutations)
+        async function saveChanges() {
+            if (!selectedFile) return;
+
+            const newContent = document.getElementById('editor-textarea').value;
+            const filenameInput = document.getElementById('edit-filename-input');
+            let desiredName = filenameInput ? filenameInput.value.trim() : selectedFile.name;
+
+            if (!desiredName) {
+                alert("Filename cannot be empty.");
+                return;
+            }
+
+            if (!desiredName.toLowerCase().endsWith('.md')) {
+                desiredName += '.md';
+            }
+
+            try {
+                updateSyncStatus('Saving…', 'bg-amber-500');
+
+                if (desiredName !== selectedFile.name) {
+                    // RENAME logic
+                    const rootHandle = sourceRoots[selectedFile.source];
+                    if (!rootHandle) {
+                        alert("Original folder handle not found. Reconnect folder.");
+                        return;
+                    }
+
+                    // Get directory handle for file path
+                    let dirHandle = rootHandle;
+                    if (selectedFile.path && selectedFile.path !== 'Root') {
+                        const segments = selectedFile.path.split('/');
+                        for (const segment of segments) {
+                            if (!segment) continue;
+                            dirHandle = await dirHandle.getDirectoryHandle(segment);
+                        }
+                    }
+
+                    // Attempt move if API supported, fallback to copy-then-delete
+                    if (typeof selectedFile.handle.move === 'function') {
+                        await selectedFile.handle.move(desiredName);
+                    } else {
+                        const newHandle = await dirHandle.getFileHandle(desiredName, { create: true });
+                        const writableNew = await newHandle.createWritable();
+                        await writableNew.write(newContent);
+                        await writableNew.close();
+
+                        try {
+                            await dirHandle.removeEntry(selectedFile.name);
+                        } catch (e) {
+                            console.warn('Could not remove old file during fallback rename', e);
+                        }
+                        selectedFile.handle = newHandle;
+                    }
+
+                    selectedFile.name = desiredName;
+                } else {
+                    // Standard overwrite
+                    if (selectedFile.handle) {
+                        const writable = await selectedFile.handle.createWritable();
+                        await writable.write(newContent);
+                        await writable.close();
+                    }
+                }
+
+                selectedFile.content = newContent;
+                selectedFile.preview = newContent.replace(/[#*`]/g, '').substring(0, 80);
+                selectedFile.tags = extractTags(selectedFile);
+                selectedFile.updatedAt = new Date().toISOString();
+
+                // Update size metadata
+                const fileData = await selectedFile.handle.getFile();
+                selectedFile.size = fileData.size;
+
+                const saveBtn = document.getElementById('save-btn');
+                const originalHTML = saveBtn.innerHTML;
+                saveBtn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Saved';
+                saveBtn.classList.replace('bg-maroon', 'bg-emerald-600');
+
+                renderFiles();
+                renderTags();
+
+                setTimeout(() => {
+                    saveBtn.innerHTML = originalHTML;
+                    saveBtn.classList.replace('bg-emerald-600', 'bg-maroon');
+                    lucide.createIcons();
+                }, 2000);
+
+                updateSyncStatus('Sync Active', 'bg-green-500');
+                lucide.createIcons();
+            } catch (err) {
+                console.error(err);
+                alert("Permission denied or write failed.");
+                updateSyncStatus('Sync Active', 'bg-green-500');
+                lucide.createIcons();
+            }
+        }
+
+        async function createNewFile() {
+            const sourceKeys = Object.keys(sourceRoots);
+            if (!sourceKeys.length) {
+                alert("Connect a folder before creating files.");
+                return;
+            }
+
+            let targetSource = selectedSource || sourceKeys[0];
+            const rootHandle = sourceRoots[targetSource];
+            if (!rootHandle) return;
+
+            let targetPath = selectedPath && selectedPath !== 'Root' ? selectedPath : 'Root';
+
+            try {
+                let dirHandle = rootHandle;
+                if (targetPath !== 'Root') {
+                    const segments = targetPath.split('/');
+                    for (const segment of segments) {
+                        if (!segment) continue;
+                        dirHandle = await dirHandle.getDirectoryHandle(segment);
+                    }
+                }
+
+                // Generate unique file name
+                const baseName = "New Note";
+                const ext = ".md";
+                let name = baseName + ext;
+                let counter = 1;
+
+                while (true) {
+                    try {
+                        await dirHandle.getFileHandle(name);
+                        name = `${baseName} ${counter}${ext}`;
+                        counter++;
+                    } catch (e) {
+                        break;
+                    }
+                }
+
+                const defaultContent = `# ${name.replace('.md', '')}\n\n`;
+                const fileHandle = await dirHandle.getFileHandle(name, { create: true });
+                const writable = await fileHandle.createWritable();
+                await writable.write(defaultContent);
+                await writable.close();
+
+                const newFile = {
+                    id: Math.random().toString(36).substr(2, 9),
+                    name,
+                    content: defaultContent,
+                    preview: name.replace('.md', ''),
+                    path: targetPath,
+                    source: targetSource,
+                    handle: fileHandle,
+                    size: defaultContent.length,
+                    tags: [],
+                    updatedAt: new Date().toISOString()
+                };
+
+                files.push(newFile);
+                renderFiles();
+                openEditor(newFile.id);
+            } catch (e) {
+                console.error(e);
+                alert("Could not create file. Ensure permission is granted.");
+            }
+        }
+
+        async function deleteFile(id) {
+            const file = files.find(f => f.id === id);
+            if (!file) return;
+
+            if (!confirm(`Are you sure you want to permanently delete "${file.name}"?`)) {
+                return;
+            }
+
+            const rootHandle = sourceRoots[file.source];
+            if (!rootHandle) return;
+
+            try {
+                updateSyncStatus('Deleting file…', 'bg-amber-500');
+
+                let dirHandle = rootHandle;
+                if (file.path && file.path !== 'Root') {
+                    const segments = file.path.split('/');
+                    for (const segment of segments) {
+                        if (!segment) continue;
+                        dirHandle = await dirHandle.getDirectoryHandle(segment);
+                    }
+                }
+
+                await dirHandle.removeEntry(file.name);
+
+                files = files.filter(f => f.id !== id);
+
+                if (selectedFile && selectedFile.id === id) {
+                    closeEditor();
+                }
+
+                renderFiles();
+                renderTags();
+                updateSyncStatus('Sync Active', 'bg-green-500');
+            } catch (err) {
+                console.error(err);
+                alert("Failed to delete file from disk.");
+                updateSyncStatus('Sync Active', 'bg-green-500');
+            }
+        }
+
+        function deleteCurrentFile() {
+            if (selectedFile) {
+                deleteFile(selectedFile.id);
+            }
+        }
+
+        async function promptCreateFolder(source, parentPath) {
+            const folderName = prompt("Enter subfolder name:");
+            if (!folderName || !folderName.trim()) return;
+
+            const name = folderName.trim();
+            if (name.includes('/') || name.includes('\\')) {
+                alert("Folder name cannot contain slashes.");
+                return;
+            }
+
+            const rootHandle = sourceRoots[source];
+            if (!rootHandle) return;
+
+            try {
+                updateSyncStatus('Creating folder…', 'bg-amber-500');
+
+                let parentHandle = rootHandle;
+                if (parentPath && parentPath !== 'Root') {
+                    const segments = parentPath.split('/');
+                    for (const segment of segments) {
+                        if (!segment) continue;
+                        parentHandle = await parentHandle.getDirectoryHandle(segment);
+                    }
+                }
+
+                await parentHandle.getDirectoryHandle(name, { create: true });
+
+                const newPath = (parentPath === 'Root' || !parentPath) ? name : `${parentPath}/${name}`;
+                if (!connectedFolders[source]) connectedFolders[source] = new Set();
+                connectedFolders[source].add(newPath);
+
+                updateSyncStatus('Sync Active', 'bg-green-500');
+                renderFolderTree();
+            } catch (e) {
+                console.error(e);
+                alert("Failed to create folder.");
+                updateSyncStatus('Sync Active', 'bg-green-500');
+            }
+        }
+
+        async function deleteFolder(source, path) {
+            if (!confirm(`Permanently delete folder "${path}" and all its contents from your disk?`)) {
+                return;
+            }
+
+            const rootHandle = sourceRoots[source];
+            if (!rootHandle) return;
+
+            try {
+                updateSyncStatus('Deleting folder…', 'bg-amber-500');
+
+                const pathParts = path.split('/');
+                const folderName = pathParts[pathParts.length - 1];
+
+                let parentHandle = rootHandle;
+                if (pathParts.length > 1) {
+                    const parentSegments = pathParts.slice(0, pathParts.length - 1);
+                    for (const segment of parentSegments) {
+                        if (!segment) continue;
+                        parentHandle = await parentHandle.getDirectoryHandle(segment);
+                    }
+                }
+
+                await parentHandle.removeEntry(folderName, { recursive: true });
+
+                // Remove files within deleted folder
+                files = files.filter(f => !(f.source === source && (f.path === path || f.path.startsWith(path + '/'))));
+
+                // Clear folder registries
+                if (connectedFolders[source]) {
+                    connectedFolders[source].delete(path);
+                    for (const p of Array.from(connectedFolders[source])) {
+                        if (p.startsWith(path + '/')) {
+                            connectedFolders[source].delete(p);
+                        }
+                    }
+                }
+
+                if (selectedSource === source && (selectedPath === path || selectedPath.startsWith(path + '/'))) {
+                    selectedPath = 'Root';
+                }
+
+                updateSyncStatus('Sync Active', 'bg-green-500');
+                renderFolderTree();
+                renderTags();
+                renderFiles();
+            } catch (err) {
+                console.error(err);
+                alert("Failed to delete folder. Ensure permission is granted.");
+                updateSyncStatus('Sync Active', 'bg-green-500');
+            }
+        }
+
+        // Drag and Drop implementation
+        let draggedFileId = null;
+
+        function handleDragStart(event, fileId) {
+            draggedFileId = fileId;
+            event.dataTransfer.setData("text/plain", fileId);
+            event.dataTransfer.effectAllowed = "move";
+        }
+
+        function setupDragAndDrop() {
+            const dropZones = document.querySelectorAll('.drop-zone');
+            dropZones.forEach(zone => {
+                zone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    zone.classList.add('drag-over');
+                });
+                
+                zone.addEventListener('dragleave', () => {
+                    zone.classList.remove('drag-over');
+                });
+                
+                zone.addEventListener('drop', async (e) => {
+                    e.preventDefault();
+                    zone.classList.remove('drag-over');
+                    
+                    const fileId = e.dataTransfer.getData("text/plain") || draggedFileId;
+                    if (!fileId) return;
+                    
+                    const file = files.find(f => f.id === fileId);
+                    const targetSource = zone.getAttribute('data-source');
+                    const targetPath = zone.getAttribute('data-path');
+                    
+                    if (!file || !targetSource || !targetPath) return;
+
+                    if (file.source !== targetSource) {
+                        alert("Files can only be moved within the same workspace.");
+                        return;
+                    }
+                    
+                    if (file.path === targetPath) return;
+
+                    await moveFile(file, targetPath);
+                });
+            });
+        }
+
+        async function moveFile(file, targetPath) {
+            const rootHandle = sourceRoots[file.source];
+            if (!rootHandle) return;
+
+            try {
+                updateSyncStatus('Moving file…', 'bg-amber-500');
+
+                let targetDirHandle = rootHandle;
+                if (targetPath && targetPath !== 'Root') {
+                    const segments = targetPath.split('/');
+                    for (const segment of segments) {
+                        if (!segment) continue;
+                        targetDirHandle = await targetDirHandle.getDirectoryHandle(segment);
+                    }
+                }
+
+                if (typeof file.handle.move === 'function') {
+                    await file.handle.move(targetDirHandle, file.name);
+                } else {
+                    // Fallback copy-then-delete
+                    const newHandle = await targetDirHandle.getFileHandle(file.name, { create: true });
+                    
+                    if (file.content === null) {
+                        const fileData = await file.handle.getFile();
+                        file.content = await fileData.text();
+                    }
+
+                    const writable = await newHandle.createWritable();
+                    await writable.write(file.content);
+                    await writable.close();
+
+                    let originalDirHandle = rootHandle;
+                    if (file.path && file.path !== 'Root') {
+                        const segments = file.path.split('/');
+                        for (const segment of segments) {
+                            if (!segment) continue;
+                            originalDirHandle = await originalDirHandle.getDirectoryHandle(segment);
+                        }
+                    }
+                    await originalDirHandle.removeEntry(file.name);
+                    file.handle = newHandle;
+                }
+
+                file.path = targetPath;
+                updateSyncStatus('Sync Active', 'bg-green-500');
+                renderFiles();
+            } catch (err) {
+                console.error(err);
+                alert("Failed to move file. Check storage write permissions.");
+                updateSyncStatus('Sync Active', 'bg-green-500');
+            }
+        }
+
+        function toggleSidebar() { 
+            document.getElementById('sidebar').classList.toggle('-translate-x-full'); 
+        }
+
         function updateSyncStatus(text, colorClass) {
             const dot = document.getElementById('sync-indicator');
             const label = document.getElementById('sync-text');
-            dot.className = `w-2 h-2 rounded-full ${colorClass}`;
-            label.innerText = text;
+            if (dot && label) {
+                dot.className = `w-2 h-2 rounded-full ${colorClass}`;
+                label.innerText = text;
+            }
         }
-
-// NEW: Create a new file in the selected/current source
-async function createNewFile() {
-    // Must have at least one connected folder
-    const sourceKeys = Object.keys(sourceRoots);
-    if (!sourceKeys.length) {
-        alert("Connect a folder before creating a new file.");
-        return;
-    }
-
-    // Decide which source to use:
-    // 1) selectedSource from the sidebar
-    // 2) source of the currently open file
-    // 3) source of the first file in the library
-    // 4) first connected sourceRoot
-    let targetSource = selectedSource
-        || (selectedFile ? selectedFile.source : null)
-        || (files.length ? files[0].source : null)
-        || sourceKeys[0];
-
-    const rootHandle = sourceRoots[targetSource];
-    if (!rootHandle) {
-        alert("Original folder handle is not available. Try reconnecting the folder.");
-        return;
-    }
-
-    // Decide target path within that source:
-    // If we have a file for that source, use its path; otherwise, use Root
-    let baseFile = null;
-    if (selectedFile && selectedFile.source === targetSource) {
-        baseFile = selectedFile;
-    } else {
-        const candidates = files.filter(f => f.source === targetSource);
-        if (candidates.length) {
-            baseFile = candidates[0];
-        }
-    }
-
-    let dirHandle = rootHandle;
-    let targetPath = 'Root';
-    if (baseFile && baseFile.path && baseFile.path !== 'Root') {
-        const segments = baseFile.path.split('/');
-        for (const segment of segments) {
-            if (!segment) continue;
-            dirHandle = await dirHandle.getDirectoryHandle(segment);
-        }
-        targetPath = baseFile.path;
-    }
-
-    // Unique filename logic: New Note.md, New Note 1.md, etc.
-    const baseName = "New Note";
-    const ext = ".md";
-    let name = baseName + ext;
-    let counter = 1;
-
-    while (true) {
-        try {
-            // If this succeeds, that filename exists already
-            await dirHandle.getFileHandle(name);
-            name = `${baseName} ${counter}${ext}`;
-            counter++;
-        } catch (e) {
-            // Name not found -> we can use it
-            break;
-        }
-    }
-
-    const defaultContent = "# New Note\n\n";
-    const fileHandle = await dirHandle.getFileHandle(name, { create: true });
-    const writable = await fileHandle.createWritable();
-    await writable.write(defaultContent);
-    await writable.close();
-
-    const newFile = {
-        id: Math.random().toString(36).substr(2, 9),
-        name,
-        content: defaultContent,
-        path: targetPath,
-        source: targetSource,
-        handle: fileHandle,
-        updatedAt: new Date().toISOString()
-    };
-
-    files.push(newFile);
-    renderFiles();
-    openEditor(newFile.id);
-}
-
-window.onload = init;
-document.getElementById('editor-textarea').addEventListener('input', updateEditorContent);
 
         window.onload = init;
         document.getElementById('editor-textarea').addEventListener('input', updateEditorContent);
