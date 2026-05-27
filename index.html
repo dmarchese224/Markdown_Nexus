@@ -375,6 +375,7 @@
         let gdriveClientId = localStorage.getItem('gdrive_client_id') || '';
         let gdriveFolderId = localStorage.getItem('gdrive_folder_id') || null;
         let tokenClient = null;
+        let gdriveFolderPathMap = {};
         
         let currentTheme = 'light';
         let deferredPrompt = null;
@@ -871,9 +872,7 @@
                 // Render subfolders of this source
                 const folderPaths = Array.from(connectedFolders[source] || []).filter(p => p !== 'Root').sort();
                 
-                if (source === 'Google Drive') {
-                    // No subfolders for Google Drive (flat notebook)
-                } else if (folderPaths.length === 0) {
+                if (folderPaths.length === 0) {
                     html += `<p class="pl-3 py-1 text-[10px] text-slate-400 dark:text-slate-500 italic">No subfolders</p>`;
                 } else {
                     folderPaths.forEach(path => {
@@ -1147,7 +1146,7 @@
 
             tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: gdriveClientId,
-                scope: 'https://www.googleapis.com/auth/drive.file',
+                scope: 'https://www.googleapis.com/auth/drive',
                 callback: async (tokenResponse) => {
                     if (tokenResponse.error !== undefined) {
                         console.error("GDrive OAuth Error:", tokenResponse);
@@ -1183,8 +1182,21 @@
                     localStorage.setItem('gdrive_folder_id', gdriveFolderId);
                 }
 
-                // 2. Fetch all Markdown files from that folder
-                await fetchGoogleDriveFiles(gdriveFolderId);
+                // Reset folder registries and path maps
+                connectedFolders["Google Drive"] = new Set(["Root"]);
+                sourceRoots["Google Drive"] = { name: "Google Drive" };
+                gdriveFolderPathMap = {};
+
+                // 2. Fetch all Markdown files recursively
+                const driveFiles = await fetchAllDriveFilesRecursively(gdriveFolderId, 'Root');
+
+                files = files.filter(f => f.source !== 'Google Drive');
+                files.push(...driveFiles);
+
+                updateSyncStatus('Sync Active', 'bg-green-500');
+                renderFolderTree();
+                renderTags();
+                renderFiles();
             } catch (err) {
                 console.error("GDrive Init Error:", err);
                 updateSyncStatus('Sync failed', 'bg-red-500');
@@ -1222,9 +1234,10 @@
             return data.id;
         }
 
-        async function fetchGoogleDriveFiles(folderId) {
-            const query = `'${folderId}' in parents and mimeType = 'text/markdown' and trashed = false`;
-            const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,size,modifiedTime)&pageSize=100`;
+        async function fetchAllDriveFilesRecursively(parentFolderId, currentPath = "Root") {
+            gdriveFolderPathMap[currentPath] = parentFolderId;
+            const query = `'${parentFolderId}' in parents and trashed = false`;
+            const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,mimeType,size,modifiedTime)&pageSize=100`;
             const res = await fetch(url, {
                 headers: { 'Authorization': `Bearer ${gdriveToken}` }
             });
@@ -1236,36 +1249,48 @@
                     gdriveToken = null;
                     alert("Google Drive session expired. Please connect again.");
                     updateSyncStatus('Ready', 'bg-gray-300');
-                    return;
+                    return [];
                 }
                 throw new Error(data.error.message);
             }
 
-            const driveFiles = (data.files || []).map(f => {
-                const extensionIndex = f.name.lastIndexOf('.');
-                const nameWithoutExt = extensionIndex !== -1 ? f.name.substring(0, extensionIndex) : f.name;
+            let results = [];
+            let subfolders = [];
 
-                return {
-                    id: 'gdrive_' + f.id,
-                    name: f.name,
-                    content: null,
-                    preview: nameWithoutExt,
-                    path: 'Root',
-                    source: 'Google Drive',
-                    driveId: f.id,
-                    size: parseInt(f.size) || 0,
-                    tags: [],
-                    updatedAt: f.modifiedTime
-                };
-            });
+            for (const f of (data.files || [])) {
+                if (f.mimeType === 'application/vnd.google-apps.folder') {
+                    subfolders.push(f);
+                } else if (f.name.toLowerCase().endsWith('.md')) {
+                    const extensionIndex = f.name.lastIndexOf('.');
+                    const nameWithoutExt = extensionIndex !== -1 ? f.name.substring(0, extensionIndex) : f.name;
 
-            files = files.filter(f => f.source !== 'Google Drive');
-            files.push(...driveFiles);
+                    results.push({
+                        id: 'gdrive_' + f.id,
+                        name: f.name,
+                        content: null,
+                        preview: nameWithoutExt,
+                        path: currentPath,
+                        source: 'Google Drive',
+                        driveId: f.id,
+                        size: parseInt(f.size) || 0,
+                        tags: [],
+                        updatedAt: f.modifiedTime
+                    });
+                }
+            }
 
-            updateSyncStatus('Sync Active', 'bg-green-500');
-            renderFolderTree();
-            renderTags();
-            renderFiles();
+            for (const folder of subfolders) {
+                const folderPath = currentPath === 'Root' ? folder.name : `${currentPath}/${folder.name}`;
+                if (!connectedFolders["Google Drive"]) {
+                    connectedFolders["Google Drive"] = new Set(["Root"]);
+                }
+                connectedFolders["Google Drive"].add(folderPath);
+
+                const subResults = await fetchAllDriveFilesRecursively(folder.id, folderPath);
+                results.push(...subResults);
+            }
+
+            return results;
         }
 
         async function loadGoogleDriveFileContent(file) {
@@ -1277,12 +1302,13 @@
             return await res.text();
         }
 
-        async function createGoogleDriveFile(name, content) {
-            if (!gdriveFolderId) throw new Error("Drive folder not initialized.");
+        async function createGoogleDriveFile(name, content, parentPath = 'Root') {
+            const parentId = gdriveFolderPathMap[parentPath] || gdriveFolderId;
+            if (!parentId) throw new Error("Drive folder not initialized.");
             
             const metadata = {
                 name: name,
-                parents: [gdriveFolderId],
+                parents: [parentId],
                 mimeType: 'text/markdown'
             };
             
@@ -1513,14 +1539,14 @@
 
                     const defaultContent = `# ${name.replace('.md', '')}\n\n`;
                     updateSyncStatus('Creating file…', 'bg-amber-500');
-                    const driveId = await createGoogleDriveFile(name, defaultContent);
+                    const driveId = await createGoogleDriveFile(name, defaultContent, targetPath);
 
                     const newFile = {
                         id: 'gdrive_' + driveId,
                         name,
                         content: defaultContent,
                         preview: name.replace('.md', ''),
-                        path: 'Root',
+                        path: targetPath,
                         source: 'Google Drive',
                         driveId: driveId,
                         size: defaultContent.length,
