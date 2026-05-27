@@ -1523,6 +1523,7 @@
             }
 
             let targetSource = selectedSource || sourceKeys[0];
+            let targetPath = selectedPath && selectedPath !== 'Root' ? selectedPath : 'Root';
             
             if (targetSource === 'Google Drive') {
                 try {
@@ -1568,8 +1569,6 @@
 
             const rootHandle = sourceRoots[targetSource];
             if (!rootHandle) return;
-
-            let targetPath = selectedPath && selectedPath !== 'Root' ? selectedPath : 'Root';
 
             try {
                 let dirHandle = rootHandle;
