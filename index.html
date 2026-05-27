@@ -23,6 +23,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
     <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     
     <script>
         tailwind.config = { 
@@ -142,16 +143,27 @@
                         <i data-lucide="folder-plus" class="w-4 h-4"></i>
                         Add Folder
                     </button>
+
+                    <button onclick="connectGoogleDrive()" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-600/20 hover:scale-[1.02] duration-150">
+                        <i data-lucide="cloud" class="w-4 h-4"></i>
+                        Connect Google Drive
+                    </button>
                     
                     <button onclick="createNewFile()" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all">
                         <i data-lucide="file-plus" class="w-4 h-4"></i>
                         New File
                     </button>
                     
-                    <button onclick="clearLibrary()" class="w-full flex items-center justify-center gap-2 px-4 py-2 text-slate-400 hover:text-red-500 dark:hover:text-red-400 text-[10px] font-bold uppercase transition-colors">
-                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                        Clear Library
-                    </button>
+                    <div class="flex flex-col gap-1 pt-2">
+                        <button onclick="configureClientId()" class="w-full flex items-center justify-center gap-2 px-4 py-1 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 text-[9px] font-bold uppercase transition-colors">
+                            <i data-lucide="settings" class="w-3 h-3"></i>
+                            Configure Client ID
+                        </button>
+                        <button onclick="clearLibrary()" class="w-full flex items-center justify-center gap-2 px-4 py-1 text-slate-400 hover:text-red-500 dark:hover:text-red-400 text-[9px] font-bold uppercase transition-colors">
+                            <i data-lucide="trash-2" class="w-3 h-3"></i>
+                            Clear Library
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -357,6 +369,12 @@
         
         let sourceRoots = {};
         let connectedFolders = {}; // e.g. { "SourceName": Set(["Root", "Drafts", "Drafts/Subfolder"]) }
+
+        // Google Drive integration state
+        let gdriveToken = sessionStorage.getItem('gdrive_token') || null;
+        let gdriveClientId = localStorage.getItem('gdrive_client_id') || '';
+        let gdriveFolderId = localStorage.getItem('gdrive_folder_id') || null;
+        let tokenClient = null;
         
         let currentTheme = 'light';
         let deferredPrompt = null;
@@ -425,6 +443,13 @@
             
             // Setup Scroll Synchronizer
             setupScrollSync();
+
+            // Auto reconnect Google Drive if token exists
+            if (gdriveToken) {
+                connectedFolders["Google Drive"] = new Set(["Root"]);
+                sourceRoots["Google Drive"] = { name: "Google Drive" };
+                initializeGoogleDriveSync();
+            }
 
             // PWA Install Prompt Listener
             window.addEventListener('beforeinstallprompt', (e) => {
@@ -512,6 +537,11 @@
                 selectedTag = null;
                 sourceRoots = {}; 
                 connectedFolders = {};
+                
+                // Clear Google Drive session
+                gdriveToken = null;
+                sessionStorage.removeItem('gdrive_token');
+                
                 renderFolderTree();
                 renderTags();
                 renderFiles();
@@ -828,9 +858,11 @@
                                 <span class="truncate">${source}</span>
                             </span>
                             <div class="flex items-center gap-1">
+                                ${source !== 'Google Drive' ? `
                                 <button onclick="event.stopPropagation(); promptCreateFolder('${source}', 'Root')" class="p-0.5 hover:text-maroon dark:hover:text-maroon-light rounded opacity-0 group-hover:opacity-100 transition-opacity" title="New Subfolder">
                                     <i data-lucide="folder-plus" class="w-3.5 h-3.5"></i>
                                 </button>
+                                ` : ''}
                             </div>
                         </div>
                         <div class="pl-2 mt-1 space-y-0.5 border-l border-slate-200 dark:border-slate-800 ml-4">
@@ -839,7 +871,9 @@
                 // Render subfolders of this source
                 const folderPaths = Array.from(connectedFolders[source] || []).filter(p => p !== 'Root').sort();
                 
-                if (folderPaths.length === 0) {
+                if (source === 'Google Drive') {
+                    // No subfolders for Google Drive (flat notebook)
+                } else if (folderPaths.length === 0) {
                     html += `<p class="pl-3 py-1 text-[10px] text-slate-400 dark:text-slate-500 italic">No subfolders</p>`;
                 } else {
                     folderPaths.forEach(path => {
@@ -930,12 +964,18 @@
                 textarea.value = '';
                 textarea.placeholder = 'Loading…';
                 try {
-                    const fileData = await selectedFile.handle.getFile();
-                    const content = await fileData.text();
+                    let content = '';
+                    if (selectedFile.source === 'Google Drive') {
+                        content = await loadGoogleDriveFileContent(selectedFile);
+                    } else {
+                        const fileData = await selectedFile.handle.getFile();
+                        content = await fileData.text();
+                    }
                     selectedFile.content = content;
                     selectedFile.preview = content.replace(/[#*`]/g, '').substring(0, 80);
                     selectedFile.tags = extractTags(selectedFile);
                 } catch (e) {
+                    console.error(e);
                     textarea.placeholder = 'Could not load file contents.';
                     return;
                 }
@@ -1077,6 +1117,240 @@
             updateEditorContent();
         }
 
+        // ==========================================
+        // GOOGLE DRIVE INTEGRATION METHODS
+        // ==========================================
+
+        function configureClientId() {
+            const currentId = localStorage.getItem('gdrive_client_id') || '';
+            const newId = prompt("Enter your Google Cloud OAuth Client ID:", currentId);
+            if (newId !== null) {
+                localStorage.setItem('gdrive_client_id', newId.trim());
+                gdriveClientId = newId.trim();
+                alert("Client ID saved. You can now connect to Google Drive.");
+            }
+        }
+
+        async function connectGoogleDrive() {
+            if (!gdriveClientId) {
+                alert("Please configure your Google Cloud Client ID first.");
+                configureClientId();
+                if (!gdriveClientId) return;
+            }
+
+            if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
+                alert("Google Identity Services script failed to load. Are you offline or blocking external scripts?");
+                return;
+            }
+
+            updateSyncStatus('Connecting Drive…', 'bg-amber-500');
+
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: gdriveClientId,
+                scope: 'https://www.googleapis.com/auth/drive.file',
+                callback: async (tokenResponse) => {
+                    if (tokenResponse.error !== undefined) {
+                        console.error("GDrive OAuth Error:", tokenResponse);
+                        alert("Authentication failed.");
+                        updateSyncStatus('Ready', 'bg-gray-300');
+                        return;
+                    }
+                    gdriveToken = tokenResponse.access_token;
+                    sessionStorage.setItem('gdrive_token', gdriveToken);
+
+                    // Registry entry for GDrive
+                    connectedFolders["Google Drive"] = new Set(["Root"]);
+                    sourceRoots["Google Drive"] = { name: "Google Drive" };
+
+                    await initializeGoogleDriveSync();
+                },
+            });
+
+            // Request Token (shows the Google OAuth Popup)
+            tokenClient.requestAccessToken({ prompt: 'consent' });
+        }
+
+        async function initializeGoogleDriveSync() {
+            updateSyncStatus('Syncing Drive…', 'bg-amber-500');
+            try {
+                // 1. Search for folder "Atomic Noteshelf" or create it if not exists
+                if (!gdriveFolderId) {
+                    let folderId = await findGoogleDriveFolder('Atomic Noteshelf');
+                    if (!folderId) {
+                        folderId = await createGoogleDriveFolder('Atomic Noteshelf');
+                    }
+                    gdriveFolderId = folderId;
+                    localStorage.setItem('gdrive_folder_id', gdriveFolderId);
+                }
+
+                // 2. Fetch all Markdown files from that folder
+                await fetchGoogleDriveFiles(gdriveFolderId);
+            } catch (err) {
+                console.error("GDrive Init Error:", err);
+                updateSyncStatus('Sync failed', 'bg-red-500');
+            }
+        }
+
+        async function findGoogleDriveFolder(name) {
+            const query = `name = '${name}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+            const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id)`;
+            const res = await fetch(url, {
+                headers: { 'Authorization': `Bearer ${gdriveToken}` }
+            });
+            const data = await res.json();
+            if (data.files && data.files.length > 0) {
+                return data.files[0].id;
+            }
+            return null;
+        }
+
+        async function createGoogleDriveFolder(name) {
+            const metadata = {
+                name: name,
+                mimeType: 'application/vnd.google-apps.folder'
+            };
+            const url = 'https://www.googleapis.com/drive/v3/files';
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${gdriveToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(metadata)
+            });
+            const data = await res.json();
+            return data.id;
+        }
+
+        async function fetchGoogleDriveFiles(folderId) {
+            const query = `'${folderId}' in parents and mimeType = 'text/markdown' and trashed = false`;
+            const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,size,modifiedTime)&pageSize=100`;
+            const res = await fetch(url, {
+                headers: { 'Authorization': `Bearer ${gdriveToken}` }
+            });
+            const data = await res.json();
+            
+            if (data.error) {
+                if (data.error.status === 'UNAUTHENTICATED') {
+                    sessionStorage.removeItem('gdrive_token');
+                    gdriveToken = null;
+                    alert("Google Drive session expired. Please connect again.");
+                    updateSyncStatus('Ready', 'bg-gray-300');
+                    return;
+                }
+                throw new Error(data.error.message);
+            }
+
+            const driveFiles = (data.files || []).map(f => {
+                const extensionIndex = f.name.lastIndexOf('.');
+                const nameWithoutExt = extensionIndex !== -1 ? f.name.substring(0, extensionIndex) : f.name;
+
+                return {
+                    id: 'gdrive_' + f.id,
+                    name: f.name,
+                    content: null,
+                    preview: nameWithoutExt,
+                    path: 'Root',
+                    source: 'Google Drive',
+                    driveId: f.id,
+                    size: parseInt(f.size) || 0,
+                    tags: [],
+                    updatedAt: f.modifiedTime
+                };
+            });
+
+            files = files.filter(f => f.source !== 'Google Drive');
+            files.push(...driveFiles);
+
+            updateSyncStatus('Sync Active', 'bg-green-500');
+            renderFolderTree();
+            renderTags();
+            renderFiles();
+        }
+
+        async function loadGoogleDriveFileContent(file) {
+            const url = `https://www.googleapis.com/drive/v3/files/${file.driveId}?alt=media`;
+            const res = await fetch(url, {
+                headers: { 'Authorization': `Bearer ${gdriveToken}` }
+            });
+            if (!res.ok) throw new Error("Could not download file content from Drive.");
+            return await res.text();
+        }
+
+        async function createGoogleDriveFile(name, content) {
+            if (!gdriveFolderId) throw new Error("Drive folder not initialized.");
+            
+            const metadata = {
+                name: name,
+                parents: [gdriveFolderId],
+                mimeType: 'text/markdown'
+            };
+            
+            const createUrl = 'https://www.googleapis.com/drive/v3/files';
+            const createRes = await fetch(createUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${gdriveToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(metadata)
+            });
+            const fileData = await createRes.json();
+            if (!createRes.ok) throw new Error(fileData.error.message || "Failed to create file metadata.");
+
+            const fileId = fileData.id;
+
+            const uploadUrl = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`;
+            const uploadRes = await fetch(uploadUrl, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${gdriveToken}`,
+                    'Content-Type': 'text/markdown'
+                },
+                body: content
+            });
+            if (!uploadRes.ok) throw new Error("Failed to upload content for new file.");
+
+            return fileId;
+        }
+
+        async function saveGoogleDriveFileContent(driveId, content) {
+            const uploadUrl = `https://www.googleapis.com/upload/drive/v3/files/${driveId}?uploadType=media`;
+            const uploadRes = await fetch(uploadUrl, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${gdriveToken}`,
+                    'Content-Type': 'text/markdown'
+                },
+                body: content
+            });
+            if (!uploadRes.ok) throw new Error("Failed to save content to Google Drive.");
+        }
+
+        async function renameGoogleDriveFile(driveId, newName) {
+            const url = `https://www.googleapis.com/drive/v3/files/${driveId}`;
+            const res = await fetch(url, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${gdriveToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name: newName })
+            });
+            if (!res.ok) throw new Error("Failed to rename file on Google Drive.");
+        }
+
+        async function deleteGoogleDriveFile(driveId) {
+            const url = `https://www.googleapis.com/drive/v3/files/${driveId}`;
+            const res = await fetch(url, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${gdriveToken}`
+                }
+            });
+            if (!res.ok) throw new Error("Failed to delete file from Google Drive.");
+        }
+
         // Scroll Sync Mechanism
         function setupScrollSync() {
             const editor = document.getElementById('editor-textarea');
@@ -1125,48 +1399,56 @@
             try {
                 updateSyncStatus('Saving…', 'bg-amber-500');
 
-                if (desiredName !== selectedFile.name) {
-                    // RENAME logic
-                    const rootHandle = sourceRoots[selectedFile.source];
-                    if (!rootHandle) {
-                        alert("Original folder handle not found. Reconnect folder.");
-                        return;
+                if (selectedFile.source === 'Google Drive') {
+                    if (desiredName !== selectedFile.name) {
+                        await renameGoogleDriveFile(selectedFile.driveId, desiredName);
+                        selectedFile.name = desiredName;
                     }
-
-                    // Get directory handle for file path
-                    let dirHandle = rootHandle;
-                    if (selectedFile.path && selectedFile.path !== 'Root') {
-                        const segments = selectedFile.path.split('/');
-                        for (const segment of segments) {
-                            if (!segment) continue;
-                            dirHandle = await dirHandle.getDirectoryHandle(segment);
-                        }
-                    }
-
-                    // Attempt move if API supported, fallback to copy-then-delete
-                    if (typeof selectedFile.handle.move === 'function') {
-                        await selectedFile.handle.move(desiredName);
-                    } else {
-                        const newHandle = await dirHandle.getFileHandle(desiredName, { create: true });
-                        const writableNew = await newHandle.createWritable();
-                        await writableNew.write(newContent);
-                        await writableNew.close();
-
-                        try {
-                            await dirHandle.removeEntry(selectedFile.name);
-                        } catch (e) {
-                            console.warn('Could not remove old file during fallback rename', e);
-                        }
-                        selectedFile.handle = newHandle;
-                    }
-
-                    selectedFile.name = desiredName;
+                    await saveGoogleDriveFileContent(selectedFile.driveId, newContent);
                 } else {
-                    // Standard overwrite
-                    if (selectedFile.handle) {
-                        const writable = await selectedFile.handle.createWritable();
-                        await writable.write(newContent);
-                        await writable.close();
+                    if (desiredName !== selectedFile.name) {
+                        // RENAME logic
+                        const rootHandle = sourceRoots[selectedFile.source];
+                        if (!rootHandle) {
+                            alert("Original folder handle not found. Reconnect folder.");
+                            return;
+                        }
+
+                        // Get directory handle for file path
+                        let dirHandle = rootHandle;
+                        if (selectedFile.path && selectedFile.path !== 'Root') {
+                            const segments = selectedFile.path.split('/');
+                            for (const segment of segments) {
+                                if (!segment) continue;
+                                dirHandle = await dirHandle.getDirectoryHandle(segment);
+                            }
+                        }
+
+                        // Attempt move if API supported, fallback to copy-then-delete
+                        if (typeof selectedFile.handle.move === 'function') {
+                            await selectedFile.handle.move(desiredName);
+                        } else {
+                            const newHandle = await dirHandle.getFileHandle(desiredName, { create: true });
+                            const writableNew = await newHandle.createWritable();
+                            await writableNew.write(newContent);
+                            await writableNew.close();
+
+                            try {
+                                await dirHandle.removeEntry(selectedFile.name);
+                            } catch (e) {
+                                console.warn('Could not remove old file during fallback rename', e);
+                            }
+                            selectedFile.handle = newHandle;
+                        }
+
+                        selectedFile.name = desiredName;
+                    } else {
+                        // Standard overwrite
+                        if (selectedFile.handle) {
+                            const writable = await selectedFile.handle.createWritable();
+                            await writable.write(newContent);
+                            await writable.close();
+                        }
                     }
                 }
 
@@ -1176,8 +1458,12 @@
                 selectedFile.updatedAt = new Date().toISOString();
 
                 // Update size metadata
-                const fileData = await selectedFile.handle.getFile();
-                selectedFile.size = fileData.size;
+                if (selectedFile.source !== 'Google Drive') {
+                    const fileData = await selectedFile.handle.getFile();
+                    selectedFile.size = fileData.size;
+                } else {
+                    selectedFile.size = newContent.length; // Approximate size for Drive
+                }
 
                 const saveBtn = document.getElementById('save-btn');
                 const originalHTML = saveBtn.innerHTML;
@@ -1206,11 +1492,54 @@
         async function createNewFile() {
             const sourceKeys = Object.keys(sourceRoots);
             if (!sourceKeys.length) {
-                alert("Connect a folder before creating files.");
+                alert("Connect a folder or Google Drive before creating files.");
                 return;
             }
 
             let targetSource = selectedSource || sourceKeys[0];
+            
+            if (targetSource === 'Google Drive') {
+                try {
+                    // Generate unique file name
+                    const baseName = "New Note";
+                    const ext = ".md";
+                    let name = baseName + ext;
+                    let counter = 1;
+
+                    while (files.some(f => f.source === 'Google Drive' && f.name === name)) {
+                        name = `${baseName} ${counter}${ext}`;
+                        counter++;
+                    }
+
+                    const defaultContent = `# ${name.replace('.md', '')}\n\n`;
+                    updateSyncStatus('Creating file…', 'bg-amber-500');
+                    const driveId = await createGoogleDriveFile(name, defaultContent);
+
+                    const newFile = {
+                        id: 'gdrive_' + driveId,
+                        name,
+                        content: defaultContent,
+                        preview: name.replace('.md', ''),
+                        path: 'Root',
+                        source: 'Google Drive',
+                        driveId: driveId,
+                        size: defaultContent.length,
+                        tags: [],
+                        updatedAt: new Date().toISOString()
+                    };
+
+                    files.push(newFile);
+                    updateSyncStatus('Sync Active', 'bg-green-500');
+                    renderFiles();
+                    openEditor(newFile.id);
+                } catch (e) {
+                    console.error(e);
+                    alert("Could not create file on Google Drive.");
+                    updateSyncStatus('Sync Active', 'bg-green-500');
+                }
+                return;
+            }
+
             const rootHandle = sourceRoots[targetSource];
             if (!rootHandle) return;
 
@@ -1275,6 +1604,27 @@
             if (!file) return;
 
             if (!confirm(`Are you sure you want to permanently delete "${file.name}"?`)) {
+                return;
+            }
+
+            if (file.source === 'Google Drive') {
+                try {
+                    updateSyncStatus('Deleting file…', 'bg-amber-500');
+                    await deleteGoogleDriveFile(file.driveId);
+                    files = files.filter(f => f.id !== id);
+
+                    if (selectedFile && selectedFile.id === id) {
+                        closeEditor();
+                    }
+
+                    renderFiles();
+                    renderTags();
+                    updateSyncStatus('Sync Active', 'bg-green-500');
+                } catch (err) {
+                    console.error(err);
+                    alert("Failed to delete file from Google Drive.");
+                    updateSyncStatus('Sync Active', 'bg-green-500');
+                }
                 return;
             }
 
@@ -1457,6 +1807,10 @@
         }
 
         async function moveFile(file, targetPath) {
+            if (file.source === 'Google Drive') {
+                alert("Moving files within Google Drive is not supported.");
+                return;
+            }
             const rootHandle = sourceRoots[file.source];
             if (!rootHandle) return;
 
